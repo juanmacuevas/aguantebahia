@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguante Bahía</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/map.css" />
+</head>
+
+<body>
+    <div class="header">
+        <h1>Aguante Bahía</h1>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Sidebar for desktop -->
+    <div class="sidebar collapsed">
+        <div class="form-container">
+            <h2>Reportar Incidente</h2>
+            <form id="sidebar-form" class="incident-form">
+                <div class="form-group">
+                    <label for="sidebar-category">Tipo de incidente:</label>
+                    <select id="sidebar-category" class="category-select" required size="8">
+                        <!-- Options will be loaded from JSON -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="sidebar-description">Descripción:</label>
+                    <textarea id="sidebar-description" class="description-input" required
+                        placeholder="Describa el incidente brevemente..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ubicación:</label>
+                    <p class="location-info location-display">Haga clic en el mapa para seleccionar una ubicación</p>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="sidebar-urgent" class="urgent-checkbox">
+                    <label for="sidebar-urgent"><strong>URGENTE:</strong> Se necesita ayuda inmediata</label>
+                </div>
+
+                <button type="submit" class="btn">Enviar Reporte</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="sidebar-toggle">
+        <i class="fas fa-chevron-left" id="toggle-icon"></i>
+    </div>
+
+    <!-- Bottomsheet for mobile -->
+    <div class="bottomsheet">
+        <div class="bottomsheet-header">
+            <div class="bottomsheet-handle"></div>
+            <button class="bottomsheet-close" id="close-bottomsheet">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="form-container">
+            <h2>Reportar Incidente</h2>
+            <form id="bottomsheet-form" class="incident-form">
+                <div class="form-group">
+                    <label for="bottomsheet-category">Tipo de incidente:</label>
+                    <select id="bottomsheet-category" class="category-select" required>
+                        <!-- Options will be loaded from JSON -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="bottomsheet-description">Descripción:</label>
+                    <textarea id="bottomsheet-description" class="description-input" required
+                        placeholder="Describa el incidente brevemente..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ubicación:</label>
+                    <p class="location-info location-display">Haga clic en el mapa para seleccionar una ubicación</p>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="bottomsheet-urgent" class="urgent-checkbox">
+                    <label for="bottomsheet-urgent"><strong>URGENTE:</strong> Se necesita ayuda inmediata</label>
+                </div>
+
+                <button type="submit" class="btn">Enviar Reporte</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div class="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+
+</html>

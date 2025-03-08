@@ -1,0 +1,66 @@
+{
+  "incidencias": {
+    "label": "Incidencias y Emergencias",
+    "color": "#cc0000",
+    "icon": "fa-solid fa-triangle-exclamation",
+    "subcategories": {
+      "zona_inundada": {
+        "label": "Zona Inundada",
+        "color": "#1e88e5",
+        "icon": "fa-solid fa-water"
+      },
+      "corte_servicios": {
+        "label": "Corte de Luz, Agua o Gas",
+        "color": "#ffc107",
+        "icon": "fa-solid fa-bolt"
+      },
+      "camino_puente_cortado": {
+        "label": "Camino o Puente Cortado",
+        "color": "#e53935",
+        "icon": "fa-solid fa-road"
+      },
+      "persona_atrapada": {
+        "label": "Persona Atrapada o Incomunicada",
+        "color": "#9c27b0",
+        "icon": "fa-solid fa-user-injured"
+      }
+    }
+  },
+  "servicios": {
+    "label": "Servicios y Recursos Disponibles",
+    "color": "#0066cc",
+    "icon": "fa-solid fa-circle-info",
+    "subcategories": {
+      "centro_salud": {
+        "label": "Centro de Salud Operativo",
+        "color": "#4caf50",
+        "icon": "fa-solid fa-hospital"
+      },
+      "refugio_evac": {
+        "label": "Refugio o Centro de Evacuación",
+        "color": "#673ab7",
+        "icon": "fa-solid fa-house-user"
+      },
+      "punto_carga": {
+        "label": "Punto de Carga de Celular",
+        "color": "#ff9800",
+        "icon": "fa-solid fa-charging-station"
+      },
+      "punto_abastecimiento": {
+        "label": "Punto de Distribución de Agua/Comida",
+        "color": "#2196f3",
+        "icon": "fa-solid fa-utensils"
+      },
+      "comercio_abierto": {
+        "label": "Comercio/Farmacia con Insumos Básicos",
+        "color": "#4caf50",
+        "icon": "fa-solid fa-store"
+      },
+      "transporte_disponible": {
+        "label": "Transporte o Evacuación Disponible",
+        "color": "#607d8b",
+        "icon": "fa-solid fa-shuttle-van"
+      }
+    }
+  }
+}

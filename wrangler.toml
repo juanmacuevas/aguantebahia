@@ -1,0 +1,10 @@
+name = "aguantebahia"
+compatibility_date = "2023-11-10"
+
+pages_build_output_dir = "public"
+
+# D1 Database para almacenar reportes
+[[d1_databases]]
+binding = "DB"
+database_name = "aguantebahia"
+database_id = "c86aab28-23ea-4fb1-9905-81f50320b9cc"

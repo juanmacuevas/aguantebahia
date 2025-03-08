@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Aguante Bahía</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <!-- Incluir CryptoJS para PBKDF2 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+            overflow: auto;
+        }
+
+        .login-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #0066cc;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn-login {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-login:hover {
+            background-color: #0055aa;
+        }
+
+        .login-error {
+            color: #cc0000;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0066cc;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Aguante Bahía</h1>
+            <p>Panel de Administración</p>
+        </div>
+
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn-login">Iniciar sesión</button>
+
+            <div id="login-error" class="login-error">
+                Usuario o contraseña incorrectos
+            </div>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('login-error');
+            const loadingIndicator = document.getElementById('loading');
+
+            // Ocultar mensaje de error previo
+            loginError.style.display = 'none';
+
+            // Mostrar indicador de carga
+            loadingIndicator.style.display = 'flex';
+
+            try {
+                // Generar hash PBKDF2 en el cliente
+                // Usamos una sal conocida (aguantebahia-fixed-salt) por simplicidad
+                // En una app real, podríamos hacer esto con un desafío de servidor
+                const salt = "aguantebahia-fixed-salt";
+                const iterations = 10000;
+                const keySize = 256 / 32;
+
+                // Dentro de la función de envío del formulario
+                const passwordHash = CryptoJS.PBKDF2(password, salt, {
+                    keySize: keySize,
+                    iterations: iterations
+                }).toString(CryptoJS.enc.Hex);
+
+                console.log('Hash generado en el cliente:', passwordHash);
+
+                // Enviar usuario y hash (no la contraseña original)
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        passwordHash // Solo enviamos el hash
+                    })
+                });
+
+                // Ocultar indicador de carga
+                loadingIndicator.style.display = 'none';
+
+                if (!response.ok) {
+                    loginError.style.display = 'block';
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    loginError.style.display = 'block';
+                    return;
+                }
+
+                // Guardar el token de autenticación
+                sessionStorage.setItem('authToken', result.token);
+
+                // Redirigir al panel de administración
+                window.location.href = '/admin.html';
+            } catch (error) {
+                console.error('Error durante el login:', error);
+                loadingIndicator.style.display = 'none';
+                loginError.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>
