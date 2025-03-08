@@ -1,0 +1,53 @@
+/* Estilos para marcadores personalizados */
+.custom-marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none !important;
+}
+
+.custom-marker-icon i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.custom-marker-icon.urgent i {
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Incident popup styling */
+.incident-popup h3 {
+    color: #0066cc;
+    margin-bottom: 5px;
+}
+
+.incident-popup p {
+    margin-bottom: 5px;
+}
+
+.urgent-tag {
+    color: #cc0000;
+    margin-top: 5px;
+}

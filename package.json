@@ -1,0 +1,23 @@
+{
+  "name": "aguantebahia",
+  "version": "1.0.0",
+  "description": "Plataforma de Mapeo de Emergencias para Bahía Blanca",
+  "scripts": {
+    "dev": "wrangler pages dev --kv=INCIDENTS --d1=DB",
+    "deploy": "wrangler pages publish public"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20230518.0",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
+    "crypto-js": "^4.2.0",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "wrangler": "^3.10.0"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
