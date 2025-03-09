@@ -33,7 +33,10 @@ function initApp() {
 
 // Inicializar el mapa (se asigna a la variable global)
 function initMap() {
-  map = L.map('map').setView([-38.7183, -62.2661], 13);
+  // Inicializar el mapa sin controles de zoom (los añadiremos manualmente)
+  map = L.map('map', {
+    zoomControl: false
+  }).setView([-38.7183, -62.2661], 13);
 
   // Capas base gratuitas
   const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -67,24 +70,35 @@ function initMap() {
     "Carto Positron": cartoPositron,
     "Carto Dark Matter": cartoDarkMatter
   };
-  L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
 
-  // Botón para actualizar incidentes
-  const refreshControl = L.control({ position: 'topright' });
+  // Primero añadimos el control de capas (abajo del todo)
+  L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
+  
+  // Luego añadimos el control de zoom (en medio)
+  L.control.zoom({ position: 'bottomleft' }).addTo(map);
+  
+  // Por último añadimos el botón de actualizar (arriba del todo)
+  const refreshControl = L.control({ position: 'bottomleft' });
   refreshControl.onAdd = () => {
     const div = L.DomUtil.create('div', 'refresh-control');
     div.innerHTML = '<button class="refresh-btn" title="Actualizar incidentes"><i class="fas fa-sync-alt"></i></button>';
-    Object.assign(div.style, {
-      backgroundColor: 'white',
-      padding: '5px',
-      borderRadius: '4px',
-      cursor: 'pointer'
+    
+    // Prevenir que los clics se propaguen al mapa
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    
+    // Manejar el evento clic del botón
+    div.querySelector('.refresh-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      loadIncidents();
+      showToast('Actualizando incidentes...', 'success');
     });
-    div.onclick = () => loadIncidents();
+    
     return div;
   };
   refreshControl.addTo(map);
 
+  // Manejar clics en el mapa para colocar marcadores
   map.on('click', handleMapClick);
 }
 
@@ -203,6 +217,7 @@ function initUI() {
   initInfoModal();
   setupFormSync();
   setupFormSubmission();
+  setupSearchBar();  // Nueva función para inicializar la barra de búsqueda
   setInterval(loadIncidents, 60000);
   window.addEventListener('resize', handleWindowResize);
 }
@@ -409,12 +424,23 @@ function setupFormSubmission() {
 
 // Clic en el mapa para colocar marcador
 function handleMapClick(e) {
+  placeMarkerAtLocation([e.latlng.lat, e.latlng.lng]);
+}
+
+// Función para colocar marcador en una ubicación específica
+function placeMarkerAtLocation(coords) {
+  const [lat, lng] = coords;
+  const latlng = L.latLng(lat, lng);
+  
   if (selectedMarker) map.removeLayer(selectedMarker);
-  selectedMarker = L.marker(e.latlng).addTo(map);
-  selectedLocation = e.latlng;
+  selectedMarker = L.marker(latlng).addTo(map);
+  selectedLocation = latlng;
+  
   locationDisplays.forEach(display => {
-    display.textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lng: ${e.latlng.lng.toFixed(6)}`;
+    display.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+    display.classList.add('selected');
   });
+  
   if (window.innerWidth <= 768) {
     bottomsheet.classList.add('expanded');
   } else {
@@ -466,4 +492,86 @@ function addIncidentToMap(incident) {
   `;
   marker.bindPopup(popupContent);
   incidentMarkers[incident.id] = marker;
+}
+
+// Configuración de la barra de búsqueda
+// Configuración de la barra de búsqueda
+function setupSearchBar() {
+  const searchInput = document.getElementById('address-search');
+  const searchButton = document.getElementById('search-button');
+  
+  if (!searchInput || !searchButton) {
+    console.error('No se pudieron encontrar los elementos de búsqueda');
+    return;
+  }
+  
+  // Clear any existing event listeners (if possible)
+  searchButton.replaceWith(searchButton.cloneNode(true));
+  searchInput.replaceWith(searchInput.cloneNode(true));
+  
+  // Get the fresh elements after replacement
+  const freshSearchInput = document.getElementById('address-search');
+  const freshSearchButton = document.getElementById('search-button');
+  
+  // Search when button is clicked
+  freshSearchButton.addEventListener('click', function() {
+    searchAddress(freshSearchInput.value);
+  });
+  
+  // Search when Enter key is pressed
+  freshSearchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      searchAddress(freshSearchInput.value);
+    }
+  });
+}
+
+function searchAddress(address) {
+  if (!address || address.trim() === '') {
+    showToast('Por favor ingrese una dirección para buscar', 'error');
+    return;
+  }
+  
+  // Show loading indicator
+  loadingIndicator.style.display = 'flex';
+  
+  // Add "Bahía Blanca" to the search if not present
+  if (!address.toLowerCase().includes('bahía blanca') && !address.toLowerCase().includes('bahia blanca')) {
+    address += ', Bahía Blanca, Argentina';
+  } else if (!address.toLowerCase().includes('argentina')) {
+    address += ', Argentina';
+  }
+  
+  // Use OpenStreetMap Nominatim for geocoding
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar`;
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      loadingIndicator.style.display = 'none';
+      
+      if (data.length > 0) {
+        const result = data[0];
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        
+        // Center map on result
+        map.setView([lat, lng], 17);
+        
+        // Place marker at location using our unified function
+        placeMarkerAtLocation([lat, lng]);
+        
+        // Update location display text with address instead of coordinates
+        locationDisplays.forEach(display => {
+          display.textContent = result.display_name;
+        });
+      } else {
+        showToast('No se encontró la dirección. Por favor intente con otra ubicación.', 'error');
+      }
+    })
+    .catch(error => {
+      loadingIndicator.style.display = 'none';
+      console.error('Error searching for address:', error);
+      showToast('Error al buscar la dirección. Por favor intente nuevamente.', 'error');
+    });
 }

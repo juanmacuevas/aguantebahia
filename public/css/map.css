@@ -1,4 +1,9 @@
-/* Estilos para marcadores personalizados */
+/* 
+ * AGUANTE BAHÍA - Estilos del mapa
+ * Archivo optimizado con secciones organizadas
+ */
+
+/* ===== MARCADORES PERSONALIZADOS ===== */
 .custom-marker-icon {
     display: flex;
     align-items: center;
@@ -37,7 +42,7 @@
     }
 }
 
-/* Incident popup styling */
+/* ===== VENTANAS EMERGENTES DE INCIDENTES ===== */
 .incident-popup h3 {
     color: #0066cc;
     margin-bottom: 5px;
@@ -50,4 +55,166 @@
 .urgent-tag {
     color: #cc0000;
     margin-top: 5px;
+}
+
+/* ===== BARRA DE BÚSQUEDA ===== */
+.search-box {
+    display: flex;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    width: 100%;
+}
+
+.search-box input {
+    flex-grow: 1;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    outline: none;
+}
+
+.search-box button {
+    background: #0066cc;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.search-box button:hover {
+    background: #0055aa;
+}
+
+/* ===== CONTROLES DEL MAPA ===== */
+/* Contenedor principal de controles - siempre mantener vertical y con separación fija */
+.leaflet-bottom.leaflet-left {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+}
+
+/* Estilo base para todos los controles */
+.leaflet-control {
+    clear: both !important;
+    margin-bottom: 10px !important;
+    margin-left: 10px !important;
+    box-sizing: border-box;
+}
+
+/* Control de capas (abajo) */
+.leaflet-control-layers {
+    border: 2px solid rgba(0,0,0,0.2) !important;
+    border-radius: 4px !important;
+    width: 44px !important;
+    height: 44px !important;
+}
+
+.leaflet-control-layers-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    background-position: center !important;
+}
+
+/* Control de zoom (en medio) */
+.leaflet-control-zoom {
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 10px !important;
+}
+
+.leaflet-control-zoom a {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 22px !important;
+    border: 2px solid rgba(0,0,0,0.2) !important;
+    margin: 0 !important;
+}
+
+.leaflet-control-zoom-in {
+    border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+}
+
+/* Botón de actualizar (arriba) */
+.refresh-control {
+    width: 44px !important;
+    height: 44px !important;
+    margin-bottom: 10px !important;
+}
+
+.refresh-btn {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    border: 2px solid rgba(0,0,0,0.2) !important;
+    border-radius: 4px;
+    font-size: 22px !important;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+    background-color: #f4f4f4;
+}
+
+/* Animación de rotación para el botón de actualizar */
+.refresh-btn:active i {
+    animation: rotate 0.5s linear;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .search-container {
+        position: static;
+    }
+    
+    /* Asegurar que los controles se mantengan verticales y agrupados en móvil */
+    .leaflet-bottom.leaflet-left {
+        bottom: 0 !important;
+        left: 0 !important;
+    }
+    
+    /* Forzar que los controles estén agrupados y mantengan el orden vertical */
+    .leaflet-control-zoom, 
+    .refresh-control,
+    .leaflet-control-layers {
+        clear: both !important;
+        float: none !important;
+        margin-bottom: 10px !important;
+        margin-left: 10px !important;
+    }
+}
+
+/* Asegurar que todos los controles tengan el mismo tamaño */
+.leaflet-control-zoom a,
+.refresh-btn,
+.leaflet-control-layers-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+}
+
+/* Forzar posición del botón de actualizar en móvil */
+@media (max-width: 768px) {
+    .refresh-control {
+        position: absolute !important;
+        bottom: 152px !important; /* Ajusta este valor según sea necesario */
+        left: 0px !important;
+    }
 }

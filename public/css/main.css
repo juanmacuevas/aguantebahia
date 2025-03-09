@@ -22,22 +22,19 @@ body {
 
 /* Header */
 .header {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
     background-color: rgba(255, 255, 255, 0.9);
     padding: 10px 15px;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     text-align: center;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .header h1 {
     margin: 0;
     color: #0066cc;
     font-size: 1.5rem;
+    white-space: nowrap;
 }
 
 /* Sidebar para desktop */
@@ -146,8 +143,8 @@ body {
     font-size: 18px;
     color: #888;
     cursor: pointer;
-    width: 30px;
-    height: 30px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -527,4 +524,76 @@ body {
 
 .copy-link.copied {
     background-color: #4caf50;
+}
+
+/* Top container for header and search */
+.top-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Update search container styles */
+.search-container {
+    flex-grow: 1;
+}
+
+
+.search-box {
+    display: flex;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    width: 100%;
+}
+
+.search-box input {
+    flex-grow: 1;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    outline: none;
+}
+
+.search-box button {
+    background: #0066cc;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.search-box button:hover {
+    background: #0055aa;
+}
+
+/* Media query for mobile devices */
+@media (max-width: 768px) {
+    .top-container {
+        flex-direction: column;
+        top: 10px;
+    }
+    
+    .header {
+        width: 100%;
+        padding: 8px 10px;
+    }
+    
+    .search-container {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* Adjust leaflet controls to avoid overlap */
+    .leaflet-control-zoom {
+        margin-top: 120px;
+    }
 }
