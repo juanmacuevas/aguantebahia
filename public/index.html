@@ -14,8 +14,67 @@
 
 <body>
     <div class="header">
-        <h1>Aguante Bahía</h1>
+        <h1>Aguante Bahía 💪 🇦🇷</h1>
     </div>
+
+    <div class="info-button" id="infoButton">
+        <i class="fas fa-info-circle"></i>
+    </div>
+
+    <!-- Modal de información -->
+    <div class="modal" id="infoModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Sobre Aguante Bahía 💪 🇦🇷</h2>
+            <div class="modal-body">
+                <p><strong>¡Juntos somos más fuertes!</strong></p>
+                <p>Aguante Bahía es una iniciativa ciudadana que nace para conectar y apoyar a todos los bahienses en
+                    momentos de emergencia, especialmente tras el temporal del 7 de marzo de 2025, que dejó importantes
+                    inundaciones en nuestra región.</p>
+                <p>El objetivo es brindarte una herramienta que te permita:</p>
+                <ul>
+                    <li><strong>Reportar</strong> las zonas afectadas por inundaciones u otras situaciones de
+                        emergencia.</li>
+                    <li><strong>Compartir</strong> información actualizada sobre los recursos disponibles.</li>
+                    <li><strong>Conectar</strong> a quienes necesitan una mano con quienes pueden ofrecerla.</li>
+                </ul>
+                <p>Esta plataforma está <a href="https://github.com/juanmacuevas/aguantebahia" target="_blank">hecha con cariño</a>
+                    por y para la comunidad. Tu participación es clave: cada aviso suma para
+                    que todos podamos tomar
+                    mejores decisiones.</p>
+                <p class="motivational">💙 Bahía Blanca se levanta, se recupera y sigue adelante. ¡Juntos podemos! 💙
+                </p>
+
+                <!-- Botones para compartir -->
+                <div class="share-buttons">
+                    <p><strong>¡Ayudanos a difundir esta herramienta!</strong></p>
+                    <a href="https://wa.me/?text=Aguante%20Bah%C3%ADa%20-%20Mapa%20de%20emergencias%20para%20ayudarnos%20entre%20todos%20tras%20las%20inundaciones%20https%3A%2F%2Faguantebahia.com"
+                        target="_blank" class="share-button whatsapp">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Faguantebahia.com"
+                        target="_blank" class="share-button facebook">
+                        <i class="fab fa-facebook-f"></i> Facebook
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?text=Aguante%20Bah%C3%ADa%20-%20Mapa%20de%20emergencias%20para%20ayudarnos%20entre%20todos%20tras%20las%20inundaciones&url=https%3A%2F%2Faguantebahia.com"
+                        target="_blank" class="share-button twitter">
+                        <i class="fab fa-x-twitter"></i> X
+                    </a>
+                    <button id="copyLinkBtn" class="share-button copy-link">
+                        <i class="fas fa-link"></i> Copiar enlace
+                    </button>
+                </div>
+
+
+                <div class="contact-info">
+                    <p>Para contactar con nosotros: <a href="mailto:info@aguantebahia.com">info@aguantebahia.com</a></p>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
 
     <div id="map"></div>
 

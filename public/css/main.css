@@ -340,3 +340,191 @@ body {
         text-align: center;
     }
 }
+
+
+/* Botón de información */
+
+.info-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: #0066cc;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 900;
+    transition: transform 0.2s, background-color 0.2s;
+    font-size: 24px;
+}
+
+.info-button:hover {
+    transform: scale(1.1);
+    background-color: #0055aa;
+}
+
+/* Modal de información */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    overflow: auto;
+}
+
+.modal-content {
+    position: relative;
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 25px;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    animation: modalopen 0.4s;
+}
+
+@keyframes modalopen {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #888;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 10px 0;
+    line-height: 1.6;
+}
+
+.modal-body p {
+    margin-bottom: 15px;
+}
+
+.modal-body ul {
+    margin-left: 25px;
+    margin-bottom: 15px;
+}
+
+.modal-body ul li {
+    margin-bottom: 5px;
+}
+
+.motivational {
+    text-align: center;
+    font-size: 1.1em;
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f0f5ff;
+    border-radius: 6px;
+    border-left: 4px solid #0066cc;
+}
+
+.contact-info {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    text-align: center;
+    font-size: 0.95em;
+}
+
+.contact-info a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 90%;
+        margin: 15% auto;
+        padding: 20px;
+    }
+    
+    .info-button {
+        bottom: 70px; /* Ajustar posición para no interferir con el bottomsheet */
+    }
+}
+
+/* Estilos para botones de compartir */
+.share-buttons {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.share-buttons p {
+    margin-bottom: 10px;
+}
+
+.share-button {
+    display: inline-block;
+    margin: 5px;
+    padding: 8px 15px;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    transition: opacity 0.2s;
+}
+
+.share-button:hover {
+    opacity: 0.9;
+}
+
+.share-button i {
+    margin-right: 5px;
+}
+
+.whatsapp {
+    background-color: #25D366;
+}
+
+.facebook {
+    background-color: #3b5998;
+}
+
+.twitter {
+    background-color: #000000;
+}
+
+.instagram {
+    background: #d6249f;
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+}
+
+.copy-link {
+    background-color: #333333; /* Gris más oscuro para mejor contraste */
+    cursor: pointer;
+    border: none;
+    font-size: 1em;
+}
+
+.copy-link.copied {
+    background-color: #4caf50;
+}

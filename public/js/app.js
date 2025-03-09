@@ -36,15 +36,56 @@ function initApp() {
 
 
 // Inicializar el mapa
+// En public/js/app.js, modifica la función initMap:
+
 function initMap() {
     // Crear mapa centrado en Bahía Blanca
-    map = L.map('map').setView([-38.7183, -62.2661], 13);
+    const map = L.map('map').setView([-38.7183, -62.2661], 13);
 
-    // Añadir capa base (OpenStreetMap)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Capas base - todas gratuitas
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    });
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Imagery &copy; ESRI',
+    });
+
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+    });
+
+    // Capas adicionales gratuitas
+    const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    });
+
+    const cartoDarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    });
+
+    // Agregar una capa base predeterminada
+    osmLayer.addTo(map);
+
+    // Control de capas
+    const baseMaps = {
+        "OpenStreetMap": osmLayer,
+        "Satélite (ESRI)": satelliteLayer,
+        "Topográfico": topoLayer,
+        "Carto Positron": cartoPositron,
+        "Carto Dark Matter": cartoDarkMatter
+    };
+
+    // Agregar control de capas al mapa
+    L.control.layers(baseMaps).addTo(map);
+
 
     // Añadir botón de actualización
     const refreshControl = L.control({ position: 'topright' });
@@ -253,6 +294,9 @@ function initUI() {
     }
 
 
+    // Inicializar modal informativo
+    initInfoModal();
+
     // Configurar sincronización de formularios
     setupFormSync();
 
@@ -265,6 +309,109 @@ function initUI() {
     // Manejar cambios de tamaño de ventana
     window.addEventListener('resize', handleWindowResize);
 }
+
+
+// Inicialización del modal informativo
+
+function initInfoModal() {
+    const infoButton = document.getElementById('infoButton');
+    const infoModal = document.getElementById('infoModal');
+    const closeModal = document.querySelector('.close-modal');
+
+    // Abrir modal al hacer clic en el botón de información
+    infoButton.addEventListener('click', function () {
+        infoModal.style.display = 'block';
+    });
+
+    // Cerrar modal al hacer clic en la X
+    closeModal.addEventListener('click', function () {
+        infoModal.style.display = 'none';
+    });
+
+    // Cerrar modal al hacer clic fuera del contenido
+    window.addEventListener('click', function (event) {
+        if (event.target === infoModal) {
+            infoModal.style.display = 'none';
+        }
+    });
+
+    setupCopyLink();
+
+    // Cerrar modal al presionar ESC
+    window.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && infoModal.style.display === 'block') {
+            infoModal.style.display = 'none';
+        }
+    });
+
+
+}
+
+
+
+function setupCopyLink() {
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', function () {
+            // Texto a copiar (incluye el protocolo para asegurar que es una URL válida)
+            const linkToCopy = window.location.origin || 'https://aguantebahia.com';
+
+            // Intenta copiar usando el API moderno
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(linkToCopy)
+                    .then(() => showCopiedConfirmation(copyLinkBtn))
+                    .catch(() => fallbackCopyMethod(linkToCopy, copyLinkBtn));
+            } else {
+                // Método alternativo para navegadores que no soportan clipboard API
+                fallbackCopyMethod(linkToCopy, copyLinkBtn);
+            }
+        });
+    }
+}
+
+// Método alternativo para copiar en navegadores más antiguos
+function fallbackCopyMethod(text, button) {
+    // Crear un elemento temporal
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed'; // Evita desplazamiento
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        // Ejecuta el comando de copia
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopiedConfirmation(button);
+        } else {
+            button.innerHTML = '<i class="fas fa-times"></i> Error al copiar';
+            setTimeout(() => {
+                button.innerHTML = '<i class="fas fa-link"></i> Copiar enlace';
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Error al copiar: ', err);
+        alert('No se pudo copiar el enlace. El enlace es: ' + text);
+    }
+
+    // Limpia
+    document.body.removeChild(textArea);
+}
+
+// Muestra confirmación de copia
+function showCopiedConfirmation(button) {
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> Enlace copiado';
+    button.classList.add('copied');
+
+    setTimeout(function () {
+        button.innerHTML = originalText;
+        button.classList.remove('copied');
+    }, 2000);
+}
+
 
 // Alternar estado del sidebar
 function toggleSidebar() {
