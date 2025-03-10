@@ -284,9 +284,8 @@ function initUI() {
   initInfoModal();
   setupFormSync();
   setupFormSubmission();
-  setupSearchBar();  // Nueva función para inicializar la barra de búsqueda
-  setInterval(loadIncidents, 60000);
-  window.addEventListener('resize', handleWindowResize);
+  setupSearchBar();
+  
 }
 
 // Modal informativo
