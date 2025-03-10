@@ -4,6 +4,7 @@ let categoriesData = {};
 let incidentMarkers = {};
 let selectedMarker = null;
 let selectedLocation = null;
+let markerClusterGroup = null; // Nueva variable para el grupo de cluster
 
 // Elementos DOM
 const sidebar = document.querySelector('.sidebar');
@@ -32,11 +33,61 @@ function initApp() {
 }
 
 // Inicializar el mapa (se asigna a la variable global)
+
 function initMap() {
-  // Inicializar el mapa sin controles de zoom (los añadiremos manualmente)
+  // Inicializar el mapa con maxZoom especificado
   map = L.map('map', {
-    zoomControl: false
+    zoomControl: false,
+    maxZoom: 19  // Añadir explícitamente maxZoom
   }).setView([-38.7183, -62.2661], 13);
+
+  // Inicializar el grupo de cluster con opciones adecuadas
+  markerClusterGroup = L.markerClusterGroup({
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    disableClusteringAtZoom: 18,  // Desactivar clustering en zoom muy cercano
+    maxClusterRadius: function (zoom) {
+      return zoom >= 15 ? 20 : zoom >= 13 ? 40 : 80;
+    },
+    iconCreateFunction: function (cluster) {
+      var childCount = cluster.getChildCount();
+      var hasUrgent = false;
+
+      cluster.getAllChildMarkers().forEach(function (marker) {
+        if (marker.options.isUrgent) {
+          hasUrgent = true;
+        }
+      });
+
+      var className = 'marker-cluster' +
+        (hasUrgent ? ' marker-cluster-urgent' : '');
+
+      var size;
+      var colorClass;
+
+      if (childCount < 10) {
+        size = 'small';
+        colorClass = 'marker-cluster-small';
+      } else if (childCount < 100) {
+        size = 'medium';
+        colorClass = 'marker-cluster-medium';
+      } else {
+        size = 'large';
+        colorClass = 'marker-cluster-large';
+      }
+
+      return new L.DivIcon({
+        html: '<div><span>' + childCount + '</span></div>',
+        className: className + ' ' + colorClass,
+        iconSize: new L.Point(40, 40)
+      });
+    }
+  });
+
+  // Añadir el grupo de cluster al mapa
+  map.addLayer(markerClusterGroup);
 
   // Capas base gratuitas
   const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -73,27 +124,27 @@ function initMap() {
 
   // Primero añadimos el control de capas (abajo del todo)
   L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
-  
+
   // Luego añadimos el control de zoom (en medio)
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
-  
+
   // Por último añadimos el botón de actualizar (arriba del todo)
   const refreshControl = L.control({ position: 'bottomleft' });
   refreshControl.onAdd = () => {
     const div = L.DomUtil.create('div', 'refresh-control');
     div.innerHTML = '<button class="refresh-btn" title="Actualizar incidentes"><i class="fas fa-sync-alt"></i></button>';
-    
+
     // Prevenir que los clics se propaguen al mapa
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
-    
+
     // Manejar el evento clic del botón
-    div.querySelector('.refresh-btn').addEventListener('click', function(e) {
+    div.querySelector('.refresh-btn').addEventListener('click', function (e) {
       e.stopPropagation();
       loadIncidents();
       showToast('Actualizando incidentes...', 'success');
     });
-    
+
     return div;
   };
   refreshControl.addTo(map);
@@ -101,6 +152,7 @@ function initMap() {
   // Manejar clics en el mapa para colocar marcadores
   map.on('click', handleMapClick);
 }
+
 
 // Cargar categorías desde JSON
 async function loadCategories() {
@@ -190,18 +242,33 @@ function getSubcategoryIcon(catKey, subKey) {
 async function loadIncidents() {
   try {
     loadingIndicator.style.display = 'flex';
-    // Remover marcadores existentes
-    Object.values(incidentMarkers).forEach(marker => map.removeLayer(marker));
+
+    // Limpiamos todos los marcadores existentes
+    markerClusterGroup.clearLayers();
     incidentMarkers = {};
+
     const response = await fetch('/api/incidents');
     if (!response.ok) throw new Error('Error loading incidents');
     const incidents = await response.json();
-    incidents.forEach(incident => addIncidentToMap(incident));
+
+    // Procesamiento por lotes para mejorar rendimiento
+    const batchSize = 100;
+    for (let i = 0; i < incidents.length; i += batchSize) {
+      const batch = incidents.slice(i, i + batchSize);
+      setTimeout(() => {
+        processBatch(batch);
+      }, 0);
+    }
   } catch (error) {
     console.error('Error loading incidents:', error);
   } finally {
     loadingIndicator.style.display = 'none';
   }
+}
+
+// Procesar un lote de incidentes
+function processBatch(incidents) {
+  incidents.forEach(incident => addIncidentToMap(incident));
 }
 
 // Inicializar la interfaz de usuario y sus eventos
@@ -431,16 +498,16 @@ function handleMapClick(e) {
 function placeMarkerAtLocation(coords) {
   const [lat, lng] = coords;
   const latlng = L.latLng(lat, lng);
-  
+
   if (selectedMarker) map.removeLayer(selectedMarker);
   selectedMarker = L.marker(latlng).addTo(map);
   selectedLocation = latlng;
-  
+
   locationDisplays.forEach(display => {
     display.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
     display.classList.add('selected');
   });
-  
+
   if (window.innerWidth <= 768) {
     bottomsheet.classList.add('expanded');
   } else {
@@ -479,7 +546,12 @@ function addIncidentToMap(incident) {
     iconSize: [40, 40],
     iconAnchor: [20, 20]
   });
-  const marker = L.marker(incidentLocation, { icon: customIcon }).addTo(map);
+
+  const marker = L.marker(incidentLocation, {
+    icon: customIcon,
+    isUrgent: incident.urgent // Añadimos esta propiedad para identificar marcadores urgentes en clusters
+  });
+
   const categoryLabel = category ? category.label : 'Desconocido';
   const subcategoryLabel = category && subcategory ? (typeof subcategory === 'object' ? subcategory.label : subcategory) : 'Desconocido';
   const popupContent = `
@@ -490,36 +562,39 @@ function addIncidentToMap(incident) {
       ${incident.urgent ? '<p class="urgent-tag"><strong>¡URGENTE!</strong></p>' : ''}
     </div>
   `;
+
   marker.bindPopup(popupContent);
   incidentMarkers[incident.id] = marker;
+
+  // Añadir el marcador al grupo de cluster en lugar de directamente al mapa
+  markerClusterGroup.addLayer(marker);
 }
 
-// Configuración de la barra de búsqueda
 // Configuración de la barra de búsqueda
 function setupSearchBar() {
   const searchInput = document.getElementById('address-search');
   const searchButton = document.getElementById('search-button');
-  
+
   if (!searchInput || !searchButton) {
     console.error('No se pudieron encontrar los elementos de búsqueda');
     return;
   }
-  
+
   // Clear any existing event listeners (if possible)
   searchButton.replaceWith(searchButton.cloneNode(true));
   searchInput.replaceWith(searchInput.cloneNode(true));
-  
+
   // Get the fresh elements after replacement
   const freshSearchInput = document.getElementById('address-search');
   const freshSearchButton = document.getElementById('search-button');
-  
+
   // Search when button is clicked
-  freshSearchButton.addEventListener('click', function() {
+  freshSearchButton.addEventListener('click', function () {
     searchAddress(freshSearchInput.value);
   });
-  
+
   // Search when Enter key is pressed
-  freshSearchInput.addEventListener('keypress', function(e) {
+  freshSearchInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       searchAddress(freshSearchInput.value);
     }
@@ -531,36 +606,36 @@ function searchAddress(address) {
     showToast('Por favor ingrese una dirección para buscar', 'error');
     return;
   }
-  
+
   // Show loading indicator
   loadingIndicator.style.display = 'flex';
-  
+
   // Add "Bahía Blanca" to the search if not present
   if (!address.toLowerCase().includes('bahía blanca') && !address.toLowerCase().includes('bahia blanca')) {
     address += ', Bahía Blanca, Argentina';
   } else if (!address.toLowerCase().includes('argentina')) {
     address += ', Argentina';
   }
-  
+
   // Use OpenStreetMap Nominatim for geocoding
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar`;
-  
+
   fetch(url)
     .then(response => response.json())
     .then(data => {
       loadingIndicator.style.display = 'none';
-      
+
       if (data.length > 0) {
         const result = data[0];
         const lat = parseFloat(result.lat);
         const lng = parseFloat(result.lon);
-        
+
         // Center map on result
         map.setView([lat, lng], 17);
-        
+
         // Place marker at location using our unified function
         placeMarkerAtLocation([lat, lng]);
-        
+
         // Update location display text with address instead of coordinates
         locationDisplays.forEach(display => {
           display.textContent = result.display_name;
