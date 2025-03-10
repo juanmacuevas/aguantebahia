@@ -25,7 +25,7 @@ export async function onRequest(context) {
                 FROM incidents 
                 ORDER BY timestamp DESC
             `).all();
-
+    
             // Format the incidents data
             const formattedIncidents = incidents.results.map(incident => ({
                 id: incident.id,
@@ -39,15 +39,25 @@ export async function onRequest(context) {
                 },
                 timestamp: incident.timestamp
             }));
-
+    
             // Generate KML based on the incidents
             const kml = generateKML(formattedIncidents);
+    
+            // Crear el nombre del archivo con la fecha actual en zona horaria Argentina (GMT-3)
+            const now = new Date();
+            // Ajustar a GMT-3 (Argentina)
+            const argentinaTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
 
+            // Formatear como YYYY-MM-DD_HH-MM
+            const dateStr = argentinaTime.toISOString().split('T')[0];
+            const timeStr = argentinaTime.toISOString().split('T')[1].substring(0, 5).replace(':', '-');
+            const filename = `incidencias_${dateStr}_${timeStr}.kml`;
+    
             // Create the response with proper KML headers
             const headers = {
                 "Content-Type": "application/vnd.google-earth.kml+xml",
                 "Access-Control-Allow-Origin": "*",
-                "Content-Disposition": "attachment; filename=incidencias.kml"
+                "Content-Disposition": `attachment; filename="${filename}"`
             };
             
             return new Response(kml, { headers });
