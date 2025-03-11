@@ -7,4 +7,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "aguantebahia"
-database_id = "c7fff106-e421-4d62-a8ee-e4ac1d2d29be"
+database_id = "c86aab28-23ea-4fb1-9905-81f50320b9cc"
