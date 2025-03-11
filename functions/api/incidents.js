@@ -19,11 +19,11 @@ export async function onRequest(context) {
             // Set up cache key based on the path
             const url = new URL(request.url);
             const cacheKey = new Request(url.toString(), request);
-            
+
             // Check if the request is in the cache
             const cache = caches.default;
             let cachedResponse = await cache.match(cacheKey);
-            
+
             if (cachedResponse) {
                 // Add a header to indicate cache hit
                 const responseHeaders = new Headers(cachedResponse.headers);
@@ -68,12 +68,12 @@ export async function onRequest(context) {
                 // Set cache control headers
                 "Cache-Control": "public, max-age=60", // Cache for 60 seconds
             };
-            
+
             const response = new Response(responseData, { headers });
-            
+
             // Store the response in the cache
             context.waitUntil(cache.put(cacheKey, response.clone()));
-            
+
             return response;
         } catch (error) {
             console.error("Error fetching incidents:", error);

@@ -11,44 +11,51 @@ let selectedMarker = null;
 let selectedLocation = null;
 
 // Evento de clic en el mapa para seleccionar ubicación
-map.on('click', function(e) {
+map.on('click', function (e) {
     // Si ya hay un marcador, eliminarlo
     if (selectedMarker) {
         map.removeLayer(selectedMarker);
     }
-    
+
     // Crear nuevo marcador en la ubicación seleccionada
     selectedMarker = L.marker(e.latlng).addTo(map);
-    
+
     // Guardar la ubicación seleccionada
     selectedLocation = e.latlng;
-    
+
     // Actualizar el texto de ubicación seleccionada
-    document.getElementById('selected-location').textContent = 
+    document.getElementById('selected-location').textContent =
         `Latitud: ${e.latlng.lat.toFixed(6)}, Longitud: ${e.latlng.lng.toFixed(6)}`;
 });
 
 // Función para cargar los incidentes desde la API
-async function loadIncidents() {
+async function loadIncidents(filteredCategories = []) {
     try {
+        loadingIndicator.style.display = 'flex';
+
+        // Removemos todos los marcadores existentes
+        Object.values(incidentMarkers).forEach(marker => map.removeLayer(marker));
+        incidentMarkers = {};
+
+        // Obtener incidentes desde la API
         const response = await fetch('/api/incidents');
-        if (!response.ok) throw new Error('Error al cargar incidentes');
-        
+        if (!response.ok) throw new Error('Error loading incidents');
         const incidents = await response.json();
-        
-        incidents.forEach(incident => {
-            const marker = L.marker([incident.location.lat, incident.location.lng]).addTo(map);
-            
-            marker.bindPopup(`
-                <strong>${getCategoryName(incident.category, incident.subcategory)}</strong>
-                <p>${incident.description}</p>
-                <small>Reportado: ${new Date(incident.created).toLocaleString()}</small>
-            `);
-        });
+
+        // Filtrar los incidentes si hay categorías seleccionadas
+        const filteredIncidents = filteredCategories.length > 0
+            ? incidents.filter(incident => filteredCategories.includes(incident.category))
+            : incidents;
+
+        // Agregar los incidentes filtrados al mapa
+        filteredIncidents.forEach(incident => addIncidentToMap(incident));
     } catch (error) {
-        console.error('Error cargando incidentes:', error);
+        console.error('Error loading incidents:', error);
+    } finally {
+        loadingIndicator.style.display = 'none';
     }
 }
+
 
 // Función para obtener el nombre legible de una categoría
 function getCategoryName(category, subcategory) {
@@ -79,7 +86,7 @@ function getCategoryName(category, subcategory) {
             'refugios': 'Refugios'
         }
     };
-    
+
     try {
         return categories[category][subcategory];
     } catch (e) {

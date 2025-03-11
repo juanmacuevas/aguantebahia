@@ -17,6 +17,15 @@ const urgentCheckboxes = document.querySelectorAll('.urgent-checkbox');
 const descriptionInputs = document.querySelectorAll('.description-input');
 const loadingIndicator = document.querySelector('.loading');
 const bottomsheetHandle = document.querySelector('.bottomsheet-handle');
+const leftSidebar = document.querySelector('.left-sidebar');
+const leftSidebarToggle = document.querySelector('.left-toggle');
+const filterIcon = document.getElementById('filter-icon');
+const filterForm = document.getElementById('filter-form');           // Escritorio
+const filterFormModal = document.getElementById('filter-form-modal'); // Móvil
+
+const filterCategorySelect = document.getElementById('filter-category');
+
+
 
 // Inicialización de la aplicación
 document.addEventListener('DOMContentLoaded', initApp);
@@ -73,27 +82,27 @@ function initMap() {
 
   // Primero añadimos el control de capas (abajo del todo)
   L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
-  
+
   // Luego añadimos el control de zoom (en medio)
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
-  
+
   // Por último añadimos el botón de actualizar (arriba del todo)
   const refreshControl = L.control({ position: 'bottomleft' });
   refreshControl.onAdd = () => {
     const div = L.DomUtil.create('div', 'refresh-control');
     div.innerHTML = '<button class="refresh-btn" title="Actualizar incidentes"><i class="fas fa-sync-alt"></i></button>';
-    
+
     // Prevenir que los clics se propaguen al mapa
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
-    
+
     // Manejar el evento clic del botón
-    div.querySelector('.refresh-btn').addEventListener('click', function(e) {
+    div.querySelector('.refresh-btn').addEventListener('click', function (e) {
       e.stopPropagation();
       loadIncidents();
       showToast('Actualizando incidentes...', 'success');
     });
-    
+
     return div;
   };
   refreshControl.addTo(map);
@@ -141,21 +150,21 @@ function populateCategorySelects() {
       select.appendChild(optgroup);
     }
 
-    // Inicializar Select2 y sincronizar selección entre formularios
     $(select).select2({
       placeholder: "Seleccionar tipo de incidente...",
       allowClear: true,
       templateResult: formatCategoryOption,
       templateSelection: formatCategoryOption
-    }).on('select2:select', function () {
-      categorySelects.forEach(otherSelect => {
-        if (otherSelect !== this) {
-          $(otherSelect).val(this.value).trigger('change');
-        }
-      });
+    }).on('select2:select', function (e) {
+      if (select.id === 'sidebar-category') {
+        console.log('Se seleccionó una categoría en el formulario de reporte');
+      } else if (select.id === 'filter-category') {
+        console.log('Se seleccionó una categoría en el filtro');
+      }
     });
   });
 }
+
 
 function formatCategoryOption(option) {
   if (!option.id) return option.text;
@@ -187,16 +196,28 @@ function getSubcategoryIcon(catKey, subKey) {
 }
 
 // Cargar incidentes desde la API
-async function loadIncidents() {
+async function loadIncidents(filteredCategories = []) {
   try {
     loadingIndicator.style.display = 'flex';
-    // Remover marcadores existentes
+
+    // Removemos todos los marcadores existentes
     Object.values(incidentMarkers).forEach(marker => map.removeLayer(marker));
     incidentMarkers = {};
+
+    // Obtener incidentes desde la API
     const response = await fetch('/api/incidents');
     if (!response.ok) throw new Error('Error loading incidents');
     const incidents = await response.json();
-    incidents.forEach(incident => addIncidentToMap(incident));
+
+    // Filtrar los incidentes si hay categorías seleccionadas
+    const filteredIncidents = filteredCategories.length > 0
+      ? incidents.filter(incident =>
+        filteredCategories.some(fc => fc.split('.')[1] === incident.subcategory)
+      )
+      : incidents;
+
+    // Agregar los incidentes filtrados al mapa
+    filteredIncidents.forEach(incident => addIncidentToMap(incident));
   } catch (error) {
     console.error('Error loading incidents:', error);
   } finally {
@@ -207,6 +228,8 @@ async function loadIncidents() {
 // Inicializar la interfaz de usuario y sus eventos
 function initUI() {
   sidebarToggle.addEventListener('click', toggleSidebar);
+  leftSidebarToggle.addEventListener('click', toggleLeftSidebar);
+  initFilterModal();
   setupBottomsheetDrag();
 
   const closeBottomsheetBtn = document.getElementById('close-bottomsheet');
@@ -217,9 +240,28 @@ function initUI() {
   initInfoModal();
   setupFormSync();
   setupFormSubmission();
-  setupSearchBar();  // Nueva función para inicializar la barra de búsqueda
-  setInterval(loadIncidents, 60000);
-  window.addEventListener('resize', handleWindowResize);
+  setupSearchBar();
+}
+
+// Modal Filtros
+function initFilterModal() {
+  const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+  const filterModal = document.getElementById('filter-modal');
+  const closeModal = document.getElementById('close-modal');
+
+  mobileSidebarToggle.addEventListener('click', () => {
+    filterModal.style.display = 'block';
+  });
+
+  closeModal.addEventListener('click', () => {
+    filterModal.style.display = 'none';
+  });
+
+  window.addEventListener('click', (event) => {
+    if (event.target === filterModal) {
+      filterModal.style.display = 'none';
+    }
+  });
 }
 
 // Modal informativo
@@ -294,6 +336,17 @@ function toggleSidebar() {
     toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
   } else {
     toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+  }
+}
+
+function toggleLeftSidebar() {
+  leftSidebar.classList.toggle('collapsed');
+  if (leftSidebar.classList.contains('collapsed')) {
+    filterIcon.classList.replace('fa-times', 'fa-filter');
+    leftSidebarToggle.style.left = "0";
+  } else {
+    filterIcon.classList.replace('fa-filter', 'fa-times');
+    leftSidebarToggle.style.left = "350px";
   }
 }
 
@@ -422,6 +475,23 @@ function setupFormSubmission() {
   });
 }
 
+function handleFilterSubmit(e) {
+  e.preventDefault();
+
+  const formElement = e.target;
+  const select = formElement.querySelector('select');
+  const selectedCategories = Array.from(select.selectedOptions).map(option => option.value);
+
+  loadIncidents(selectedCategories);
+
+  const filterModal = document.getElementById('filter-modal');
+  if (formElement.id === 'filter-form-modal') {
+    filterModal.style.display = 'none';
+  }
+}
+filterForm.addEventListener('submit', handleFilterSubmit);
+filterFormModal.addEventListener('submit', handleFilterSubmit);
+
 // Clic en el mapa para colocar marcador
 function handleMapClick(e) {
   placeMarkerAtLocation([e.latlng.lat, e.latlng.lng]);
@@ -431,16 +501,16 @@ function handleMapClick(e) {
 function placeMarkerAtLocation(coords) {
   const [lat, lng] = coords;
   const latlng = L.latLng(lat, lng);
-  
+
   if (selectedMarker) map.removeLayer(selectedMarker);
   selectedMarker = L.marker(latlng).addTo(map);
   selectedLocation = latlng;
-  
+
   locationDisplays.forEach(display => {
     display.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
     display.classList.add('selected');
   });
-  
+
   if (window.innerWidth <= 768) {
     bottomsheet.classList.add('expanded');
   } else {
@@ -499,27 +569,27 @@ function addIncidentToMap(incident) {
 function setupSearchBar() {
   const searchInput = document.getElementById('address-search');
   const searchButton = document.getElementById('search-button');
-  
+
   if (!searchInput || !searchButton) {
     console.error('No se pudieron encontrar los elementos de búsqueda');
     return;
   }
-  
+
   // Clear any existing event listeners (if possible)
   searchButton.replaceWith(searchButton.cloneNode(true));
   searchInput.replaceWith(searchInput.cloneNode(true));
-  
+
   // Get the fresh elements after replacement
   const freshSearchInput = document.getElementById('address-search');
   const freshSearchButton = document.getElementById('search-button');
-  
+
   // Search when button is clicked
-  freshSearchButton.addEventListener('click', function() {
+  freshSearchButton.addEventListener('click', function () {
     searchAddress(freshSearchInput.value);
   });
-  
+
   // Search when Enter key is pressed
-  freshSearchInput.addEventListener('keypress', function(e) {
+  freshSearchInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       searchAddress(freshSearchInput.value);
     }
@@ -531,36 +601,36 @@ function searchAddress(address) {
     showToast('Por favor ingrese una dirección para buscar', 'error');
     return;
   }
-  
+
   // Show loading indicator
   loadingIndicator.style.display = 'flex';
-  
+
   // Add "Bahía Blanca" to the search if not present
   if (!address.toLowerCase().includes('bahía blanca') && !address.toLowerCase().includes('bahia blanca')) {
     address += ', Bahía Blanca, Argentina';
   } else if (!address.toLowerCase().includes('argentina')) {
     address += ', Argentina';
   }
-  
+
   // Use OpenStreetMap Nominatim for geocoding
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=ar`;
-  
+
   fetch(url)
     .then(response => response.json())
     .then(data => {
       loadingIndicator.style.display = 'none';
-      
+
       if (data.length > 0) {
         const result = data[0];
         const lat = parseFloat(result.lat);
         const lng = parseFloat(result.lon);
-        
+
         // Center map on result
         map.setView([lat, lng], 17);
-        
+
         // Place marker at location using our unified function
         placeMarkerAtLocation([lat, lng]);
-        
+
         // Update location display text with address instead of coordinates
         locationDisplays.forEach(display => {
           display.textContent = result.display_name;
