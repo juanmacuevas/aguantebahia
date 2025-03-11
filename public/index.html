@@ -48,7 +48,8 @@
                     <li><strong>Compartir</strong> información actualizada sobre los recursos disponibles.</li>
                     <li><strong>Conectar</strong> a quienes necesitan una mano con quienes pueden ofrecerla.</li>
                 </ul>
-                <p>Esta plataforma está <a href="https://github.com/juanmacuevas/aguantebahia" target="_blank">hecha con cariño</a>
+                <p>Esta plataforma está <a href="https://github.com/juanmacuevas/aguantebahia" target="_blank">hecha con
+                        cariño</a>
                     por y para la comunidad. Tu participación es clave: cada aviso suma para
                     que todos podamos tomar
                     mejores decisiones.</p>
@@ -122,6 +123,48 @@
 
     <div class="sidebar-toggle">
         <i class="fas fa-chevron-left" id="toggle-icon"></i>
+    </div>
+
+    <!-- Sidebar de filtros en la izquierda -->
+    <div class="sidebar left-sidebar collapsed">
+        <div class="form-container">
+            <h2>Filtrar Incidentes</h2>
+            <form id="filter-form" class="filter-form">
+                <div class="form-group">
+                    <label for="filter-category">Tipo de incidente:</label>
+                    <select id="filter-category" class="category-select" multiple size="8">
+                        <!-- Opciones serán cargadas dinámicamente -->
+                    </select>
+                </div>
+                <button type="submit" class="btn apply-filters">Aplicar Filtros</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="sidebar-toggle left-toggle">
+        <i class="fas fa-filter" id="filter-icon"></i>
+    </div>
+
+    <!-- Botón adicional para móvil -->
+    <div class="mobile-sidebar-toggle" id="mobile-sidebar-toggle">
+        <i class="fas fa-filter" id="mobile-filter-icon"></i>
+    </div>
+
+    <!-- Modal para móvil -->
+    <div class="modal" id="filter-modal">
+        <div class="modal-content">
+            <span class="close" id="close-modal">&times;</span>
+            <h2>Filtrar Incidentes</h2>
+            <form id="filter-form-modal" class="filter-form">
+                <div class="form-group">
+                    <label for="filter-category-modal">Tipo de incidente:</label>
+                    <select id="filter-category-modal" class="category-select" style='width: 100%;' multiple size="8">
+                        <!-- Opciones serán cargadas dinámicamente -->
+                    </select>
+                </div>
+                <button type="submit" class="btn apply-filters">Aplicar Filtros</button>
+            </form>
+        </div>
     </div>
 
     <!-- Bottomsheet for mobile -->

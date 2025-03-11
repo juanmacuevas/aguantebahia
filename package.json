@@ -11,7 +11,10 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "crypto-js": "^4.2.0",
-    "leaflet": "^1.9.4"
+    "dotenv": "^16.4.7",
+    "leaflet": "^1.9.4",
+    "mysql2": "^3.13.0",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "wrangler": "^3.10.0"

@@ -66,20 +66,20 @@ let markerClusterGroup = L.markerClusterGroup({
 map.addLayer(markerClusterGroup);
 
 // Evento de clic en el mapa para seleccionar ubicación
-map.on('click', function(e) {
+map.on('click', function (e) {
     // Si ya hay un marcador, eliminarlo
     if (selectedMarker) {
         map.removeLayer(selectedMarker);
     }
-    
+
     // Crear nuevo marcador en la ubicación seleccionada
     selectedMarker = L.marker(e.latlng).addTo(map);
-    
+
     // Guardar la ubicación seleccionada
     selectedLocation = e.latlng;
-    
+
     // Actualizar el texto de ubicación seleccionada
-    document.getElementById('selected-location').textContent = 
+    document.getElementById('selected-location').textContent =
         `Latitud: ${e.latlng.lat.toFixed(6)}, Longitud: ${e.latlng.lng.toFixed(6)}`;
 });
 
@@ -90,8 +90,7 @@ async function loadIncidents() {
         markerClusterGroup.clearLayers();
         
         const response = await fetch('/api/incidents');
-        if (!response.ok) throw new Error('Error al cargar incidentes');
-        
+        if (!response.ok) throw new Error('Error loading incidents');
         const incidents = await response.json();
         
         // Procesar incidentes en lotes para mejorar rendimiento
@@ -102,7 +101,9 @@ async function loadIncidents() {
             }, 0);
         }
     } catch (error) {
-        console.error('Error cargando incidentes:', error);
+        console.error('Error loading incidents:', error);
+    } finally {
+        loadingIndicator.style.display = 'none';
     }
 }
 
@@ -154,7 +155,7 @@ function getCategoryName(category, subcategory) {
             'refugios': 'Refugios'
         }
     };
-    
+
     try {
         return categories[category][subcategory];
     } catch (e) {

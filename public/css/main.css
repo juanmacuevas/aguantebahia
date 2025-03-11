@@ -27,7 +27,8 @@ body {
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     text-align: center;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    flex-shrink: 0;
+    /* Prevent header from shrinking */
 }
 
 .header h1 {
@@ -50,7 +51,8 @@ body {
     transition: transform 0.3s ease;
     transform: translateX(0);
     overflow-y: auto;
-    display: none; /* Oculto por defecto en móvil */
+    display: none;
+    /* Oculto por defecto en móvil */
 }
 
 .sidebar.collapsed {
@@ -72,7 +74,8 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: right 0.3s ease, background-color 0.2s ease;
-    display: none; /* Oculto por defecto en móvil */
+    display: none;
+    /* Oculto por defecto en móvil */
 }
 
 .sidebar-toggle:hover {
@@ -94,8 +97,126 @@ body {
     transform: scale(1.2);
 }
 
-.sidebar.collapsed + .sidebar-toggle {
+.sidebar.collapsed+.sidebar-toggle {
     right: 0;
+}
+
+/* Sidebar para filtros */
+.left-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 350px;
+    height: 100%;
+    background-color: white;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.left-sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.left-toggle {
+    position: absolute;
+    top: 70px;
+    left: 350px;
+    width: 36px;
+    height: 60px;
+    background-color: white;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: left 0.3s ease;
+    display: none;
+}
+
+.left-sidebar.collapsed+.left-toggle {
+    left: 0;
+}
+
+/* Estilo para el modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050 !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.select2-container {
+    z-index: 2000 !important;
+}
+
+.mobile-sidebar-toggle {
+    position: absolute;
+    top: 150px;
+    left: 10px;
+    width: 50px;
+    height: 50px;
+    background-color: #0066cc;
+    color: white;
+    border-radius: 50%;
+    display: none;
+    /* Oculto por defecto */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    z-index: 900;
+    transition: transform 0.2s, background-color 0.2s;
+    font-size: 24px;
+}
+
+/* Efecto hover */
+.mobile-sidebar-toggle:hover {
+    background-color: #004999;
+    transform: scale(1.1);
+}
+
+/* Mostrar solo en móviles */
+@media screen and (max-width: 768px) {
+    .mobile-sidebar-toggle {
+        display: flex;
+    }
+}
+
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 100%;
+    position: relative;
+    z-index: 1100;
+}
+
+.filter-form select {
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1200;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
 }
 
 /* Bottomsheet para móvil */
@@ -112,7 +233,8 @@ body {
     border-radius: 12px 12px 0 0;
     overflow-y: auto;
     max-height: 80vh;
-    display: block; /* Visible por defecto en móvil */
+    display: block;
+    /* Visible por defecto en móvil */
 }
 
 .bottomsheet.expanded {
@@ -237,6 +359,7 @@ body {
 .category-select {
     max-height: 200px;
     overflow-y: auto;
+    z-index: 1200;
 }
 
 .category-select optgroup {
@@ -275,6 +398,7 @@ body {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -309,13 +433,16 @@ body {
 
 /* Media Queries */
 @media (min-width: 769px) {
+
     .sidebar,
     .sidebar-toggle {
-        display: block; /* Mostrar sidebar en desktop */
+        display: block;
+        /* Mostrar sidebar en desktop */
     }
 
     .bottomsheet {
-        display: none; /* Ocultar bottomsheet en desktop */
+        display: none;
+        /* Ocultar bottomsheet en desktop */
     }
 }
 
@@ -329,9 +456,10 @@ body {
     }
 
     .leaflet-control-zoom {
-        margin-top: 60px; /* Hacer espacio para el header centrado en móvil */
+        margin-top: 60px;
+        /* Hacer espacio para el header centrado en móvil */
     }
-    
+
     .toast {
         width: 90%;
         text-align: center;
@@ -391,8 +519,15 @@ body {
 }
 
 @keyframes modalopen {
-    from {opacity: 0; transform: translateY(-20px);}
-    to {opacity: 1; transform: translateY(0);}
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .close-modal {
@@ -461,9 +596,10 @@ body {
         margin: 15% auto;
         padding: 20px;
     }
-    
+
     .info-button {
-        bottom: 70px; /* Ajustar posición para no interferir con el bottomsheet */
+        bottom: 70px;
+        /* Ajustar posición para no interferir con el bottomsheet */
     }
 }
 
@@ -516,7 +652,8 @@ body {
 }
 
 .copy-link {
-    background-color: #333333; /* Gris más oscuro para mejor contraste */
+    background-color: #333333;
+    /* Gris más oscuro para mejor contraste */
     cursor: pointer;
     border: none;
     font-size: 1em;
@@ -581,12 +718,12 @@ body {
         flex-direction: column;
         top: 10px;
     }
-    
+
     .header {
         width: 100%;
         padding: 8px 10px;
     }
-    
+
     .search-container {
         width: 100%;
         margin-top: 10px;

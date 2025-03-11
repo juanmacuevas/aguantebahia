@@ -18,6 +18,15 @@ const urgentCheckboxes = document.querySelectorAll('.urgent-checkbox');
 const descriptionInputs = document.querySelectorAll('.description-input');
 const loadingIndicator = document.querySelector('.loading');
 const bottomsheetHandle = document.querySelector('.bottomsheet-handle');
+const leftSidebar = document.querySelector('.left-sidebar');
+const leftSidebarToggle = document.querySelector('.left-toggle');
+const filterIcon = document.getElementById('filter-icon');
+const filterForm = document.getElementById('filter-form');           // Escritorio
+const filterFormModal = document.getElementById('filter-form-modal'); // Móvil
+
+const filterCategorySelect = document.getElementById('filter-category');
+
+
 
 // Inicialización de la aplicación
 document.addEventListener('DOMContentLoaded', initApp);
@@ -125,8 +134,10 @@ function initMap() {
   // Primero añadimos el control de capas (abajo del todo)
   L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
 
+
   // Luego añadimos el control de zoom (en medio)
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
 
   // Por último añadimos el botón de actualizar (arriba del todo)
   const refreshControl = L.control({ position: 'bottomleft' });
@@ -139,11 +150,12 @@ function initMap() {
     L.DomEvent.disableScrollPropagation(div);
 
     // Manejar el evento clic del botón
-    div.querySelector('.refresh-btn').addEventListener('click', function (e) {
+    div.querySelector('.refresh-btn').addEventListener('click', function  (e) {
       e.stopPropagation();
       loadIncidents();
       showToast('Actualizando incidentes...', 'success');
     });
+
 
     return div;
   };
@@ -193,21 +205,21 @@ function populateCategorySelects() {
       select.appendChild(optgroup);
     }
 
-    // Inicializar Select2 y sincronizar selección entre formularios
     $(select).select2({
       placeholder: "Seleccionar tipo de incidente...",
       allowClear: true,
       templateResult: formatCategoryOption,
       templateSelection: formatCategoryOption
-    }).on('select2:select', function () {
-      categorySelects.forEach(otherSelect => {
-        if (otherSelect !== this) {
-          $(otherSelect).val(this.value).trigger('change');
-        }
-      });
+    }).on('select2:select', function (e) {
+      if (select.id === 'sidebar-category') {
+        console.log('Se seleccionó una categoría en el formulario de reporte');
+      } else if (select.id === 'filter-category') {
+        console.log('Se seleccionó una categoría en el filtro');
+      }
     });
   });
 }
+
 
 function formatCategoryOption(option) {
   if (!option.id) return option.text;
@@ -239,11 +251,10 @@ function getSubcategoryIcon(catKey, subKey) {
 }
 
 // Cargar incidentes desde la API
-async function loadIncidents() {
+async function loadIncidents(filteredCategories = []) {
   try {
     loadingIndicator.style.display = 'flex';
 
-    // Limpiamos todos los marcadores existentes
     markerClusterGroup.clearLayers();
     incidentMarkers = {};
 
@@ -251,10 +262,15 @@ async function loadIncidents() {
     if (!response.ok) throw new Error('Error loading incidents');
     const incidents = await response.json();
 
-    // Procesamiento por lotes para mejorar rendimiento
+    const filteredIncidents = filteredCategories.length > 0
+      ? incidents.filter(incident =>
+        filteredCategories.some(fc => fc.split('.')[1] === incident.subcategory)
+      )
+      : incidents;
+
     const batchSize = 100;
-    for (let i = 0; i < incidents.length; i += batchSize) {
-      const batch = incidents.slice(i, i + batchSize);
+    for (let i = 0; i < filteredIncidents.length; i += batchSize) {
+      const batch = filteredIncidents.slice(i, i + batchSize);
       setTimeout(() => {
         processBatch(batch);
       }, 0);
@@ -266,14 +282,16 @@ async function loadIncidents() {
   }
 }
 
-// Procesar un lote de incidentes
 function processBatch(incidents) {
   incidents.forEach(incident => addIncidentToMap(incident));
 }
 
+
 // Inicializar la interfaz de usuario y sus eventos
 function initUI() {
   sidebarToggle.addEventListener('click', toggleSidebar);
+  leftSidebarToggle.addEventListener('click', toggleLeftSidebar);
+  initFilterModal();
   setupBottomsheetDrag();
 
   const closeBottomsheetBtn = document.getElementById('close-bottomsheet');
@@ -285,7 +303,27 @@ function initUI() {
   setupFormSync();
   setupFormSubmission();
   setupSearchBar();
+}
 
+// Modal Filtros
+function initFilterModal() {
+  const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+  const filterModal = document.getElementById('filter-modal');
+  const closeModal = document.getElementById('close-modal');
+
+  mobileSidebarToggle.addEventListener('click', () => {
+    filterModal.style.display = 'block';
+  });
+
+  closeModal.addEventListener('click', () => {
+    filterModal.style.display = 'none';
+  });
+
+  window.addEventListener('click', (event) => {
+    if (event.target === filterModal) {
+      filterModal.style.display = 'none';
+    }
+  });
 }
 
 // Modal informativo
@@ -360,6 +398,17 @@ function toggleSidebar() {
     toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
   } else {
     toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+  }
+}
+
+function toggleLeftSidebar() {
+  leftSidebar.classList.toggle('collapsed');
+  if (leftSidebar.classList.contains('collapsed')) {
+    filterIcon.classList.replace('fa-times', 'fa-filter');
+    leftSidebarToggle.style.left = "0";
+  } else {
+    filterIcon.classList.replace('fa-filter', 'fa-times');
+    leftSidebarToggle.style.left = "350px";
   }
 }
 
@@ -488,6 +537,23 @@ function setupFormSubmission() {
   });
 }
 
+function handleFilterSubmit(e) {
+  e.preventDefault();
+
+  const formElement = e.target;
+  const select = formElement.querySelector('select');
+  const selectedCategories = Array.from(select.selectedOptions).map(option => option.value);
+
+  loadIncidents(selectedCategories);
+
+  const filterModal = document.getElementById('filter-modal');
+  if (formElement.id === 'filter-form-modal') {
+    filterModal.style.display = 'none';
+  }
+}
+filterForm.addEventListener('submit', handleFilterSubmit);
+filterFormModal.addEventListener('submit', handleFilterSubmit);
+
 // Clic en el mapa para colocar marcador
 function handleMapClick(e) {
   placeMarkerAtLocation([e.latlng.lat, e.latlng.lng]);
@@ -506,6 +572,7 @@ function placeMarkerAtLocation(coords) {
     display.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
     display.classList.add('selected');
   });
+
 
   if (window.innerWidth <= 768) {
     bottomsheet.classList.add('expanded');
@@ -569,17 +636,17 @@ function addIncidentToMap(incident) {
 
   const popup = L.popup().setContent(popupContent);
   marker.bindPopup(popup);
-  
+
   // Agregar event listener al popup cuando se abre
-  marker.on('popupopen', function() {
+  marker.on('popupopen', function () {
     const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${incident.id}"]`);
     if (reportButton) {
-      reportButton.addEventListener('click', function() {
+      reportButton.addEventListener('click', function () {
         voteToDeleteIncident(incident.id);
       });
     }
   });
-  
+
   incidentMarkers[incident.id] = marker;
   markerClusterGroup.addLayer(marker);
 }
@@ -587,30 +654,30 @@ function addIncidentToMap(incident) {
 async function voteToDeleteIncident(incidentId) {
   try {
     loadingIndicator.style.display = 'flex';
-    
+
     const response = await fetch(`/api/incidents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         action: 'vote_delete',
         incidentId: incidentId
       })
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Error al procesar la información');
     }
-    
+
     // Cerrar el popup actual
     map.closePopup();
-    
+
     // Mensaje genérico
     showToast('Gracias por tu aporte. Hemos registrado tu información.', 'success');
-    
+
     // Refrescar incidentes para mantener el mapa actualizado
     loadIncidents();
-    
+
   } catch (error) {
     console.error('Error:', error);
     showToast('No se pudo procesar tu aporte. Inténtalo más tarde.', 'error');
@@ -625,26 +692,31 @@ function setupSearchBar() {
   const searchInput = document.getElementById('address-search');
   const searchButton = document.getElementById('search-button');
 
+
   if (!searchInput || !searchButton) {
     console.error('No se pudieron encontrar los elementos de búsqueda');
     return;
   }
 
+
   // Clear any existing event listeners (if possible)
   searchButton.replaceWith(searchButton.cloneNode(true));
   searchInput.replaceWith(searchInput.cloneNode(true));
+
 
   // Get the fresh elements after replacement
   const freshSearchInput = document.getElementById('address-search');
   const freshSearchButton = document.getElementById('search-button');
 
+
   // Search when button is clicked
-  freshSearchButton.addEventListener('click', function () {
+  freshSearchButton.addEventListener('click', function  () {
     searchAddress(freshSearchInput.value);
   });
 
+
   // Search when Enter key is pressed
-  freshSearchInput.addEventListener('keypress', function (e) {
+  freshSearchInput.addEventListener('keypress', function  (e) {
     if (e.key === 'Enter') {
       searchAddress(freshSearchInput.value);
     }
@@ -659,6 +731,7 @@ function searchAddress(address) {
 
   // Show loading indicator
   loadingIndicator.style.display = 'flex';
+
 
   // Add "Bahía Blanca" to the search if not present
   if (!address.toLowerCase().includes('bahía blanca') && !address.toLowerCase().includes('bahia blanca')) {
