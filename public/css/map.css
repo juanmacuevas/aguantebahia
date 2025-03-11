@@ -23,7 +23,9 @@
 }
 
 .custom-marker-icon.urgent i {
-    animation: pulse 1.5s infinite;
+    /* Eliminamos la animación */
+    animation: none;
+    /* Mantenemos el box-shadow para distinguirlos */
     box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
 }
 
@@ -39,6 +41,97 @@
     100% {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+/* ===== ESTILOS DE CLUSTER ===== */
+/* Estilos personalizados para los clusters de marcadores */
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 20px;
+}
+
+.marker-cluster div {
+    width: 36px;
+    height: 36px;
+    margin-left: 2px;
+    margin-top: 2px;
+    text-align: center;
+    border-radius: 18px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.marker-cluster span {
+    line-height: 1;
+    font-weight: bold;
+}
+
+/* Clusters con marcadores normales */
+.marker-cluster-small {
+    background-color: rgba(41, 128, 185, 0.4);
+}
+.marker-cluster-small div {
+    background-color: rgba(41, 128, 185, 0.6);
+}
+
+.marker-cluster-medium {
+    background-color: rgba(39, 174, 96, 0.4);
+}
+.marker-cluster-medium div {
+    background-color: rgba(39, 174, 96, 0.6);
+}
+
+.marker-cluster-large {
+    background-color: rgba(241, 196, 15, 0.4);
+}
+.marker-cluster-large div {
+    background-color: rgba(241, 196, 15, 0.6);
+}
+
+/* Clusters con marcadores urgentes */
+.marker-cluster-urgent {
+    /* Eliminamos la animación */
+    animation: none;
+    /* Añadimos un box-shadow estático para distinguirlos */
+    box-shadow: 0 0 5px rgba(231, 76, 60, 0.6);
+}
+
+.marker-cluster-urgent.marker-cluster-small {
+    background-color: rgba(231, 76, 60, 0.3);
+}
+.marker-cluster-urgent.marker-cluster-small div {
+    background-color: rgba(231, 76, 60, 0.7);
+    color: white;
+}
+
+.marker-cluster-urgent.marker-cluster-medium {
+    background-color: rgba(231, 76, 60, 0.3);
+}
+.marker-cluster-urgent.marker-cluster-medium div {
+    background-color: rgba(231, 76, 60, 0.7);
+    color: white;
+}
+
+.marker-cluster-urgent.marker-cluster-large {
+    background-color: rgba(231, 76, 60, 0.3);
+}
+.marker-cluster-urgent.marker-cluster-large div {
+    background-color: rgba(231, 76, 60, 0.7);
+    color: white;
+}
+
+@keyframes pulse-cluster {
+    0% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
     }
 }
 
@@ -178,7 +271,7 @@
     to { transform: rotate(360deg); }
 }
 
-/* ===== RESPONSIVE ===== */
+/* ===== OPTIMIZACIONES PARA DISPOSITIVOS MÓVILES ===== */
 @media (max-width: 768px) {
     .search-container {
         position: static;
@@ -199,6 +292,15 @@
         margin-bottom: 10px !important;
         margin-left: 10px !important;
     }
+    
+    /* Reducir el tamaño de los clusters en dispositivos móviles para mejorar rendimiento */
+    .marker-cluster-small div,
+    .marker-cluster-medium div,
+    .marker-cluster-large div {
+        width: 32px;
+        height: 32px;
+        font-size: 11px;
+    }
 }
 
 /* Asegurar que todos los controles tengan el mismo tamaño */
@@ -218,3 +320,22 @@
         left: 0px !important;
     }
 }
+
+/* ===== BOTÓN DE REPORTAR INCIDENTES ===== */
+.report-incident-btn {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-top: 8px;
+    display: block;
+    width: 100%;
+    transition: background-color 0.3s;
+  }
+  
+  .report-incident-btn:hover {
+    background-color: #0055aa;
+  }

@@ -4,6 +4,7 @@ let categoriesData = {};
 let incidentMarkers = {};
 let selectedMarker = null;
 let selectedLocation = null;
+let markerClusterGroup = null; // Nueva variable para el grupo de cluster
 
 // Elementos DOM
 const sidebar = document.querySelector('.sidebar');
@@ -41,11 +42,61 @@ function initApp() {
 }
 
 // Inicializar el mapa (se asigna a la variable global)
+
 function initMap() {
-  // Inicializar el mapa sin controles de zoom (los añadiremos manualmente)
+  // Inicializar el mapa con maxZoom especificado
   map = L.map('map', {
-    zoomControl: false
+    zoomControl: false,
+    maxZoom: 19  // Añadir explícitamente maxZoom
   }).setView([-38.7183, -62.2661], 13);
+
+  // Inicializar el grupo de cluster con opciones adecuadas
+  markerClusterGroup = L.markerClusterGroup({
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    disableClusteringAtZoom: 18,  // Desactivar clustering en zoom muy cercano
+    maxClusterRadius: function (zoom) {
+      return zoom >= 15 ? 20 : zoom >= 13 ? 40 : 80;
+    },
+    iconCreateFunction: function (cluster) {
+      var childCount = cluster.getChildCount();
+      var hasUrgent = false;
+
+      cluster.getAllChildMarkers().forEach(function (marker) {
+        if (marker.options.isUrgent) {
+          hasUrgent = true;
+        }
+      });
+
+      var className = 'marker-cluster' +
+        (hasUrgent ? ' marker-cluster-urgent' : '');
+
+      var size;
+      var colorClass;
+
+      if (childCount < 10) {
+        size = 'small';
+        colorClass = 'marker-cluster-small';
+      } else if (childCount < 100) {
+        size = 'medium';
+        colorClass = 'marker-cluster-medium';
+      } else {
+        size = 'large';
+        colorClass = 'marker-cluster-large';
+      }
+
+      return new L.DivIcon({
+        html: '<div><span>' + childCount + '</span></div>',
+        className: className + ' ' + colorClass,
+        iconSize: new L.Point(40, 40)
+      });
+    }
+  });
+
+  // Añadir el grupo de cluster al mapa
+  map.addLayer(markerClusterGroup);
 
   // Capas base gratuitas
   const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -83,8 +134,10 @@ function initMap() {
   // Primero añadimos el control de capas (abajo del todo)
   L.control.layers(baseMaps, null, { position: 'bottomleft' }).addTo(map);
 
+
   // Luego añadimos el control de zoom (en medio)
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
 
   // Por último añadimos el botón de actualizar (arriba del todo)
   const refreshControl = L.control({ position: 'bottomleft' });
@@ -97,11 +150,12 @@ function initMap() {
     L.DomEvent.disableScrollPropagation(div);
 
     // Manejar el evento clic del botón
-    div.querySelector('.refresh-btn').addEventListener('click', function (e) {
+    div.querySelector('.refresh-btn').addEventListener('click', function  (e) {
       e.stopPropagation();
       loadIncidents();
       showToast('Actualizando incidentes...', 'success');
     });
+
 
     return div;
   };
@@ -110,6 +164,7 @@ function initMap() {
   // Manejar clics en el mapa para colocar marcadores
   map.on('click', handleMapClick);
 }
+
 
 // Cargar categorías desde JSON
 async function loadCategories() {
@@ -200,30 +255,37 @@ async function loadIncidents(filteredCategories = []) {
   try {
     loadingIndicator.style.display = 'flex';
 
-    // Removemos todos los marcadores existentes
-    Object.values(incidentMarkers).forEach(marker => map.removeLayer(marker));
+    markerClusterGroup.clearLayers();
     incidentMarkers = {};
 
-    // Obtener incidentes desde la API
     const response = await fetch('/api/incidents');
     if (!response.ok) throw new Error('Error loading incidents');
     const incidents = await response.json();
 
-    // Filtrar los incidentes si hay categorías seleccionadas
     const filteredIncidents = filteredCategories.length > 0
       ? incidents.filter(incident =>
         filteredCategories.some(fc => fc.split('.')[1] === incident.subcategory)
       )
       : incidents;
 
-    // Agregar los incidentes filtrados al mapa
-    filteredIncidents.forEach(incident => addIncidentToMap(incident));
+    const batchSize = 100;
+    for (let i = 0; i < filteredIncidents.length; i += batchSize) {
+      const batch = filteredIncidents.slice(i, i + batchSize);
+      setTimeout(() => {
+        processBatch(batch);
+      }, 0);
+    }
   } catch (error) {
     console.error('Error loading incidents:', error);
   } finally {
     loadingIndicator.style.display = 'none';
   }
 }
+
+function processBatch(incidents) {
+  incidents.forEach(incident => addIncidentToMap(incident));
+}
+
 
 // Inicializar la interfaz de usuario y sus eventos
 function initUI() {
@@ -511,6 +573,7 @@ function placeMarkerAtLocation(coords) {
     display.classList.add('selected');
   });
 
+
   if (window.innerWidth <= 768) {
     bottomsheet.classList.add('expanded');
   } else {
@@ -536,6 +599,8 @@ function showToast(message, type = 'success', duration = 3000) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
+
+// Versión actualizada de la función addIncidentToMap con texto mejorado
 function addIncidentToMap(incident) {
   const category = categoriesData[incident.category];
   const subcategory = category?.subcategories[incident.subcategory];
@@ -549,7 +614,12 @@ function addIncidentToMap(incident) {
     iconSize: [40, 40],
     iconAnchor: [20, 20]
   });
-  const marker = L.marker(incidentLocation, { icon: customIcon }).addTo(map);
+
+  const marker = L.marker(incidentLocation, {
+    icon: customIcon,
+    isUrgent: incident.urgent
+  });
+
   const categoryLabel = category ? category.label : 'Desconocido';
   const subcategoryLabel = category && subcategory ? (typeof subcategory === 'object' ? subcategory.label : subcategory) : 'Desconocido';
   const popupContent = `
@@ -558,38 +628,95 @@ function addIncidentToMap(incident) {
       <p>${incident.description}</p>
       <p><small>Reportado: ${new Date(incident.timestamp).toLocaleString()}</small></p>
       ${incident.urgent ? '<p class="urgent-tag"><strong>¡URGENTE!</strong></p>' : ''}
+      <button class="report-incident-btn" data-incident-id="${incident.id}">
+        <i class="fas fa-flag"></i> Marcar como resuelto o inexacto
+      </button>
     </div>
   `;
-  marker.bindPopup(popupContent);
+
+  const popup = L.popup().setContent(popupContent);
+  marker.bindPopup(popup);
+
+  // Agregar event listener al popup cuando se abre
+  marker.on('popupopen', function () {
+    const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${incident.id}"]`);
+    if (reportButton) {
+      reportButton.addEventListener('click', function () {
+        voteToDeleteIncident(incident.id);
+      });
+    }
+  });
+
   incidentMarkers[incident.id] = marker;
+  markerClusterGroup.addLayer(marker);
 }
 
-// Configuración de la barra de búsqueda
+async function voteToDeleteIncident(incidentId) {
+  try {
+    loadingIndicator.style.display = 'flex';
+
+    const response = await fetch(`/api/incidents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'vote_delete',
+        incidentId: incidentId
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al procesar la información');
+    }
+
+    // Cerrar el popup actual
+    map.closePopup();
+
+    // Mensaje genérico
+    showToast('Gracias por tu aporte. Hemos registrado tu información.', 'success');
+
+    // Refrescar incidentes para mantener el mapa actualizado
+    loadIncidents();
+
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('No se pudo procesar tu aporte. Inténtalo más tarde.', 'error');
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
+}
+
+
 // Configuración de la barra de búsqueda
 function setupSearchBar() {
   const searchInput = document.getElementById('address-search');
   const searchButton = document.getElementById('search-button');
+
 
   if (!searchInput || !searchButton) {
     console.error('No se pudieron encontrar los elementos de búsqueda');
     return;
   }
 
+
   // Clear any existing event listeners (if possible)
   searchButton.replaceWith(searchButton.cloneNode(true));
   searchInput.replaceWith(searchInput.cloneNode(true));
+
 
   // Get the fresh elements after replacement
   const freshSearchInput = document.getElementById('address-search');
   const freshSearchButton = document.getElementById('search-button');
 
+
   // Search when button is clicked
-  freshSearchButton.addEventListener('click', function () {
+  freshSearchButton.addEventListener('click', function  () {
     searchAddress(freshSearchInput.value);
   });
 
+
   // Search when Enter key is pressed
-  freshSearchInput.addEventListener('keypress', function (e) {
+  freshSearchInput.addEventListener('keypress', function  (e) {
     if (e.key === 'Enter') {
       searchAddress(freshSearchInput.value);
     }
@@ -604,6 +731,7 @@ function searchAddress(address) {
 
   // Show loading indicator
   loadingIndicator.style.display = 'flex';
+
 
   // Add "Bahía Blanca" to the search if not present
   if (!address.toLowerCase().includes('bahía blanca') && !address.toLowerCase().includes('bahia blanca')) {

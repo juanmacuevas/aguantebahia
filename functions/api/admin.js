@@ -7,7 +7,7 @@ export async function onRequest(context) {
       return new Response(null, {
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, DELETE, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, DELETE, PUT, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization"
         }
       });
@@ -64,12 +64,69 @@ export async function onRequest(context) {
           SELECT id, category, subcategory, description, urgent, 
                  json_extract(location, '$.lat') as lat, 
                  json_extract(location, '$.lng') as lng, 
-                 timestamp 
+                 timestamp, visibility
           FROM incidents 
           ORDER BY timestamp DESC
         `).all();
         
         return new Response(JSON.stringify(incidents.results), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+    
+    // Handle PUT request - toggle incident visibility
+    if (request.method === 'PUT') {
+      try {
+        const url = new URL(request.url);
+        const id = url.searchParams.get('id');
+        
+        if (!id) {
+          return new Response(JSON.stringify({ error: 'Incident ID is required' }), {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+        
+        // Obtener el estado actual de visibilidad
+        const currentIncident = await env.DB.prepare('SELECT visibility FROM incidents WHERE id = ?').bind(id).first();
+        
+        if (!currentIncident) {
+          return new Response(JSON.stringify({ error: 'Incident not found' }), {
+            status: 404,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+        
+        // Cambiar la visibilidad (1 -> 0 o 0 -> 1)
+        const newVisibility = currentIncident.visibility === 1 ? 0 : 1;
+        
+        await env.DB.prepare('UPDATE incidents SET visibility = ? WHERE id = ?')
+          .bind(newVisibility, id)
+          .run();
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          visibility: newVisibility, 
+          message: newVisibility === 1 ? 'Incidente visible' : 'Incidente oculto' 
+        }), {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
@@ -127,7 +184,7 @@ export async function onRequest(context) {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Allow': 'GET, DELETE, OPTIONS'
+        'Allow': 'GET, DELETE, PUT, OPTIONS'
       }
     });
   }
