@@ -143,6 +143,20 @@
             }
         }
 
+        /* Estilos para incidentes ocultos y botones de visibilidad */
+        .hidden-incident {
+            opacity: 0.5;
+            background-color: #f8f8f8;
+        }
+
+        .visibility-btn {
+            margin-right: 5px;
+        }
+
+        .visibility-btn[data-visible="0"] {
+            color: #999;
+        }
+
         @media (max-width: 768px) {
             .stats {
                 flex-direction: column;
@@ -168,22 +182,20 @@
 </head>
 
 <body>
+    <script>
+        // Verificar autenticación
+        (function () {
+            const authToken = sessionStorage.getItem('authToken');
+            if (!authToken) {
+                // Redirigir a la página de login si no hay token
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
 
-
-    <body>
-        <script>
-            // Verificar autenticación
-            (function () {
-                const authToken = sessionStorage.getItem('authToken');
-                if (!authToken) {
-                    // Redirigir a la página de login si no hay token
-                    window.location.href = '/login.html';
-                }
-            })();
-        </script>
-
-        <div class="header">
-            <h1>Aguante Bahía - Panel de Administración</h1>
+    <div class="header">
+        <h1>Aguante Bahía - Panel de Administración</h1>
+        <div>
             <button id="refreshBtn" class="refresh-btn">
                 <i class="fas fa-sync-alt"></i> Actualizar
             </button>
@@ -191,242 +203,306 @@
                 <i class="fas fa-sign-out-alt"></i> Cerrar sesión
             </button>
         </div>
+    </div>
 
-        <div class="stats">
-            <div class="stat-card">
-                <h3>Total de Reportes</h3>
-                <div id="totalIncidents" class="value">0</div>
-            </div>
-
-            <div class="stat-card">
-                <h3>Reportes Urgentes</h3>
-                <div id="urgentIncidents" class="value">0</div>
-            </div>
-
-            <div class="stat-card">
-                <h3>Últimas 24 horas</h3>
-                <div id="recentIncidents" class="value">0</div>
-            </div>
-
-            <div class="stat-card">
-                <h3>Bloqueos de Calles</h3>
-                <div id="roadIncidents" class="value">0</div>
-            </div>
+    <div class="stats">
+        <div class="stat-card">
+            <h3>Total de Reportes</h3>
+            <div id="totalIncidents" class="value">0</div>
         </div>
 
-        <table id="incidentsTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Tipo</th>
-                    <th>Descripción</th>
-                    <th>Ubicación</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Incidents will be loaded here -->
-            </tbody>
-        </table>
-
-        <div class="loading" id="loadingIndicator">
-            <div class="spinner"></div>
+        <div class="stat-card">
+            <h3>Reportes Urgentes</h3>
+            <div id="urgentIncidents" class="value">0</div>
         </div>
 
-        <script>
-            // Categories data
-            let categoriesData = {};
+        <div class="stat-card">
+            <h3>Últimas 24 horas</h3>
+            <div id="recentIncidents" class="value">0</div>
+        </div>
 
-            // DOM elements
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const totalIncidentsEl = document.getElementById('totalIncidents');
-            const urgentIncidentsEl = document.getElementById('urgentIncidents');
-            const recentIncidentsEl = document.getElementById('recentIncidents');
-            const roadIncidentsEl = document.getElementById('roadIncidents');
-            const incidentsTableBody = document.getElementById('incidentsTable').querySelector('tbody');
-            const refreshBtn = document.getElementById('refreshBtn');
+        <div class="stat-card">
+            <h3>Bloqueos de Calles</h3>
+            <div id="roadIncidents" class="value">0</div>
+        </div>
+    </div>
 
-            // Load categories
-            async function loadCategories() {
-                try {
-                    const response = await fetch('/data/categories.json');
-                    if (!response.ok) {
-                        throw new Error('Error loading categories');
-                    }
-                    categoriesData = await response.json();
-                } catch (error) {
-                    console.error('Error loading categories:', error);
-                    alert('Error loading categories. Please refresh the page.');
+    <table id="incidentsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Ubicación</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Incidents will be loaded here -->
+        </tbody>
+    </table>
+
+    <div class="loading" id="loadingIndicator">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // Variables globales
+        let categoriesData = {};
+
+        // Elementos DOM
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const totalIncidentsEl = document.getElementById('totalIncidents');
+        const urgentIncidentsEl = document.getElementById('urgentIncidents');
+        const recentIncidentsEl = document.getElementById('recentIncidents');
+        const roadIncidentsEl = document.getElementById('roadIncidents');
+        const incidentsTableBody = document.getElementById('incidentsTable').querySelector('tbody');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Cargar categorías
+        async function loadCategories() {
+            try {
+                const response = await fetch('/data/categories.json');
+                if (!response.ok) {
+                    throw new Error('Error loading categories');
                 }
+                categoriesData = await response.json();
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                alert('Error loading categories. Please refresh the page.');
             }
+        }
 
-            // Busca la función loadIncidents en admin.html y reemplázala:
+        // Cargar incidentes
+        async function loadIncidents() {
+            loadingIndicator.style.display = 'flex';
 
-            async function loadIncidents() {
-                loadingIndicator.style.display = 'flex';
-
-                try {
-                    const authToken = sessionStorage.getItem('authToken');
-                    if (!authToken) {
-                        throw new Error('No authentication token');
-                    }
-
-                    const response = await fetch('/api/admin', {
-                        headers: {
-                            'Authorization': 'Bearer ' + authToken
-                        }
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 401) {
-                            // Si hay un error de autenticación, redirigir al login
-                            sessionStorage.removeItem('authToken');
-                            window.location.href = '/login.html';
-                            return;
-                        }
-                        throw new Error('Failed to fetch incidents');
-                    }
-
-                    const incidents = await response.json();
-
-                    // Actualizar estadísticas
-                    updateStats(incidents);
-
-                    // Renderizar tabla
-                    renderIncidentsTable(incidents);
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error loading incidents: ' + error.message);
-                } finally {
-                    loadingIndicator.style.display = 'none';
+            try {
+                const authToken = sessionStorage.getItem('authToken');
+                if (!authToken) {
+                    throw new Error('No authentication token');
                 }
-            }
 
-            // Busca la función deleteIncident en admin.html y reemplázala:
-
-            async function deleteIncident(id) {
-                loadingIndicator.style.display = 'flex';
-
-                try {
-                    const authToken = sessionStorage.getItem('authToken');
-                    if (!authToken) {
-                        throw new Error('No authentication token');
+                const response = await fetch('/api/admin', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
                     }
+                });
 
-                    const response = await fetch(`/api/admin?id=${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': 'Bearer ' + authToken
-                        }
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 401) {
-                            // Si hay un error de autenticación, redirigir al login
-                            sessionStorage.removeItem('authToken');
-                            window.location.href = '/login.html';
-                            return;
-                        }
-                        throw new Error('Failed to delete incident');
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Si hay un error de autenticación, redirigir al login
+                        sessionStorage.removeItem('authToken');
+                        window.location.href = '/login.html';
+                        return;
                     }
-
-                    await loadIncidents();
-                    alert('Reporte eliminado con éxito');
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error eliminando reporte: ' + error.message);
-                } finally {
-                    loadingIndicator.style.display = 'none';
+                    throw new Error('Failed to fetch incidents');
                 }
+
+                const incidents = await response.json();
+
+                // Actualizar estadísticas
+                updateStats(incidents);
+
+                // Renderizar tabla
+                renderIncidentsTable(incidents);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error loading incidents: ' + error.message);
+            } finally {
+                loadingIndicator.style.display = 'none';
             }
+        }
 
+        // Cambiar visibilidad de un incidente
+        async function toggleIncidentVisibility(id) {
+            loadingIndicator.style.display = 'flex';
 
-            // Update statistics
-            function updateStats(incidents) {
-                const now = new Date();
-                const yesterday = new Date(now);
-                yesterday.setDate(yesterday.getDate() - 1);
+            try {
+                const authToken = sessionStorage.getItem('authToken');
+                if (!authToken) {
+                    throw new Error('No authentication token');
+                }
 
-                const total = incidents.length;
-                const urgent = incidents.filter(i => i.urgent === 1).length;
-                const recent = incidents.filter(i => new Date(i.timestamp) > yesterday).length;
-                const road = incidents.filter(i => i.category === 'roads').length;
-
-                totalIncidentsEl.textContent = total;
-                urgentIncidentsEl.textContent = urgent;
-                recentIncidentsEl.textContent = recent;
-                roadIncidentsEl.textContent = road;
-            }
-
-            // Render incidents table
-            function renderIncidentsTable(incidents) {
-                incidentsTableBody.innerHTML = '';
-
-                incidents.forEach(incident => {
-                    const row = document.createElement('tr');
-
-                    // Get category and subcategory labels
-                    let categoryLabel = 'Desconocido';
-                    let subcategoryLabel = 'Desconocido';
-
-                    if (categoriesData[incident.category]) {
-                        categoryLabel = categoriesData[incident.category].label;
-                        if (categoriesData[incident.category].subcategories[incident.subcategory]) {
-                            subcategoryLabel = categoriesData[incident.category].subcategories[incident.subcategory];
-                        }
+                const response = await fetch(`/api/admin?id=${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
                     }
+                });
 
-                    // Format date
-                    const date = new Date(incident.timestamp);
-                    const formattedDate = date.toLocaleString();
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Si hay un error de autenticación, redirigir al login
+                        sessionStorage.removeItem('authToken');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    throw new Error('Failed to toggle incident visibility');
+                }
 
-                    // Create row
-                    row.innerHTML = `
-                    <td>${incident.id}</td>
-                    <td>${categoryLabel}: ${subcategoryLabel} ${incident.urgent ? '<span class="urgent">(URGENTE)</span>' : ''}</td>
-                    <td>${incident.description}</td>
-                    <td>Lat: ${parseFloat(incident.lat).toFixed(6)}, Lng: ${parseFloat(incident.lng).toFixed(6)}</td>
-                    <td>${formattedDate}</td>
-                    <td>
-                        <button class="action-btn delete-btn" data-id="${incident.id}" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
+                const result = await response.json();
+                await loadIncidents();
+                alert(`Reporte ${result.visibility === 1 ? 'visible' : 'oculto'}`);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cambiar visibilidad: ' + error.message);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Eliminar un incidente
+        async function deleteIncident(id) {
+            loadingIndicator.style.display = 'flex';
+
+            try {
+                const authToken = sessionStorage.getItem('authToken');
+                if (!authToken) {
+                    throw new Error('No authentication token');
+                }
+
+                const response = await fetch(`/api/admin?id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Si hay un error de autenticación, redirigir al login
+                        sessionStorage.removeItem('authToken');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    throw new Error('Failed to delete incident');
+                }
+
+                await loadIncidents();
+                alert('Reporte eliminado permanentemente');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error eliminando reporte: ' + error.message);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        // Actualizar estadísticas
+        function updateStats(incidents) {
+            const now = new Date();
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const total = incidents.length;
+            const urgent = incidents.filter(i => i.urgent === 1).length;
+            const recent = incidents.filter(i => new Date(i.timestamp) > yesterday).length;
+            const road = incidents.filter(i => i.category === 'roads').length;
+
+            totalIncidentsEl.textContent = total;
+            urgentIncidentsEl.textContent = urgent;
+            recentIncidentsEl.textContent = recent;
+            roadIncidentsEl.textContent = road;
+        }
+
+        // Renderizar tabla de incidentes
+        function renderIncidentsTable(incidents) {
+            incidentsTableBody.innerHTML = '';
+
+            incidents.forEach(incident => {
+                const row = document.createElement('tr');
+
+                // Get category and subcategory labels
+                let categoryLabel = 'Desconocido';
+                let subcategoryLabel = 'Desconocido';
+
+                if (categoriesData[incident.category]) {
+                    categoryLabel = categoriesData[incident.category].label;
+                    
+                    const subcategory = categoriesData[incident.category].subcategories[incident.subcategory];
+                    if (subcategory) {
+                        // Si es un objeto, tomar la propiedad label
+                        subcategoryLabel = typeof subcategory === 'object' ? subcategory.label : subcategory;
+                    }
+                }
+
+                // Format date
+                const date = new Date(incident.timestamp);
+                const formattedDate = date.toLocaleString();
+
+                // Estado de visibilidad
+                const isVisible = incident.visibility === 1 || incident.visibility === undefined;
+                const visibilityIcon = isVisible ? 'fa-eye' : 'fa-eye-slash';
+                const visibilityTitle = isVisible ? 'Ocultar' : 'Mostrar';
+
+                // Create row
+                row.innerHTML = `
+                <td>${incident.id}</td>
+                <td>${categoryLabel}<br><small>${subcategoryLabel}</small> ${incident.urgent ? '<span class="urgent">(URGENTE)</span>' : ''}</td>
+                <td>${incident.description}</td>
+                <td>Lat: ${parseFloat(incident.lat).toFixed(6)}, Lng: ${parseFloat(incident.lng).toFixed(6)}</td>
+                <td>${formattedDate}</td>
+                <td>
+                    <button class="action-btn visibility-btn" data-id="${incident.id}" data-visible="${isVisible ? 1 : 0}" title="${visibilityTitle}">
+                        <i class="fas ${visibilityIcon}"></i>
+                    </button>
+                    <button class="action-btn delete-btn" data-id="${incident.id}" title="Eliminar permanentemente">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
                 `;
 
-                    incidentsTableBody.appendChild(row);
-                });
+                if (!isVisible) {
+                    row.classList.add('hidden-incident');
+                }
 
-                // Add event listeners to delete buttons
-                document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', async function () {
-                        const id = this.getAttribute('data-id');
-                        if (confirm(`¿Está seguro que desea eliminar el reporte #${id}?`)) {
-                            await deleteIncident(id);
-                        }
-                    });
-                });
-            }
-
-            // Event listener for refresh button
-            refreshBtn.addEventListener('click', loadIncidents);
-
-            // Initial load
-            document.addEventListener('DOMContentLoaded', async () => {
-                await loadCategories();
-                await loadIncidents();
+                incidentsTableBody.appendChild(row);
             });
 
-            document.getElementById('logoutBtn').addEventListener('click', function () {
-                sessionStorage.removeItem('authToken');
-                window.location.href = '/login.html';
+            // Add event listeners to visibility buttons
+            document.querySelectorAll('.visibility-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const id = this.getAttribute('data-id');
+                    const isVisible = this.getAttribute('data-visible') === '1';
+                    const action = isVisible ? 'ocultar' : 'mostrar';
+                    
+                    if (confirm(`¿Está seguro que desea ${action} el reporte #${id}?`)) {
+                        await toggleIncidentVisibility(id);
+                    }
+                });
             });
 
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const id = this.getAttribute('data-id');
+                    if (confirm(`¿Está seguro que desea ELIMINAR PERMANENTEMENTE el reporte #${id}?`)) {
+                        await deleteIncident(id);
+                    }
+                });
+            });
+        }
 
-        </script>
-    </body>
+        // Event listeners
+        refreshBtn.addEventListener('click', loadIncidents);
+        
+        logoutBtn.addEventListener('click', function() {
+            sessionStorage.removeItem('authToken');
+            window.location.href = '/login.html';
+        });
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCategories();
+            await loadIncidents();
+        });
+    </script>
+</body>
 
 </html>

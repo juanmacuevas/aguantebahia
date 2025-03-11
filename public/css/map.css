@@ -23,7 +23,9 @@
 }
 
 .custom-marker-icon.urgent i {
-    animation: pulse 1.5s infinite;
+    /* Eliminamos la animación */
+    animation: none;
+    /* Mantenemos el box-shadow para distinguirlos */
     box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
 }
 
@@ -91,7 +93,10 @@
 
 /* Clusters con marcadores urgentes */
 .marker-cluster-urgent {
-    animation: pulse-cluster 1.5s infinite;
+    /* Eliminamos la animación */
+    animation: none;
+    /* Añadimos un box-shadow estático para distinguirlos */
+    box-shadow: 0 0 5px rgba(231, 76, 60, 0.6);
 }
 
 .marker-cluster-urgent.marker-cluster-small {
@@ -315,3 +320,22 @@
         left: 0px !important;
     }
 }
+
+/* ===== BOTÓN DE REPORTAR INCIDENTES ===== */
+.report-incident-btn {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-top: 8px;
+    display: block;
+    width: 100%;
+    transition: background-color 0.3s;
+  }
+  
+  .report-incident-btn:hover {
+    background-color: #0055aa;
+  }

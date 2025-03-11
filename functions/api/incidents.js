@@ -35,13 +35,16 @@ export async function onRequest(context) {
                 });
             }
 
-            // Query the database for all incidents
+            // Query the database for visible incidents AND with less than 3 deletion votes
             const incidents = await env.DB.prepare(`
           SELECT id, category, subcategory, description, urgent, 
                  json_extract(location, '$.lat') as lat, 
                  json_extract(location, '$.lng') as lng, 
-                 timestamp 
+                 timestamp, 
+                 visibility,
+                 deletion_votes
           FROM incidents 
+          WHERE visibility = 1 AND deletion_votes < 3
           ORDER BY timestamp DESC
         `).all();
 
@@ -56,7 +59,9 @@ export async function onRequest(context) {
                     lat: parseFloat(incident.lat),
                     lng: parseFloat(incident.lng)
                 },
-                timestamp: incident.timestamp
+                timestamp: incident.timestamp,
+                deletion_votes: incident.deletion_votes
+                // No incluimos visibility en la respuesta ya que todos los registrados serán 1
             }));
 
             // Create the response
@@ -87,13 +92,76 @@ export async function onRequest(context) {
         }
     }
 
-    // Handle POST request - create a new incident
+    // Handle POST request - create a new incident or vote to delete
     if (request.method === "POST") {
         try {
             // Parse the JSON body
             const data = await request.json();
 
-            // Validate required fields
+            // Comprobar si es una solicitud para votar por eliminación
+            if (data.action === 'vote_delete' && data.incidentId) {
+                const incidentId = parseInt(data.incidentId);
+                
+                if (isNaN(incidentId)) {
+                    return new Response(JSON.stringify({ error: "Invalid incident ID" }), {
+                        status: 400,
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Access-Control-Allow-Origin": "*"
+                        }
+                    });
+                }
+                
+                // Incrementar los votos de eliminación
+                const result = await env.DB.prepare(`
+                    UPDATE incidents 
+                    SET deletion_votes = deletion_votes + 1 
+                    WHERE id = ?
+                `).bind(incidentId).run();
+                
+                // Verificar si la actualización fue exitosa
+                if (result.meta.changes === 0) {
+                    return new Response(JSON.stringify({ error: "Incident not found" }), {
+                        status: 404,
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Access-Control-Allow-Origin": "*"
+                        }
+                    });
+                }
+
+                // Obtener el contador actual para comprobar si se debe ocultar el incidente
+                const updatedIncident = await env.DB.prepare(`
+                    SELECT deletion_votes FROM incidents WHERE id = ?
+                `).bind(incidentId).first();
+                
+                // Si los votos superan el umbral (3), ocultar el incidente
+                if (updatedIncident.deletion_votes >= 3) {
+                    await env.DB.prepare(`
+                        UPDATE incidents SET visibility = 0 WHERE id = ?
+                    `).bind(incidentId).run();
+                }
+
+                // Limpiar la caché para garantizar datos frescos en la próxima solicitud GET
+                const cache = caches.default;
+                const cacheKey = new Request(new URL(request.url).origin + '/api/incidents', { method: 'GET' });
+                context.waitUntil(cache.delete(cacheKey));
+
+                return new Response(JSON.stringify({
+                    success: true,
+                    message: "Vote registered successfully",
+                    deletion_votes: updatedIncident.deletion_votes
+                }), {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*"
+                    }
+                });
+            }
+
+            // Continuamos con la lógica original para crear incidentes
+            // Validate required fields for new incident
             if (!data.category || !data.subcategory || !data.description || !data.location) {
                 return new Response(JSON.stringify({ error: "Missing required fields" }), {
                     status: 400,
@@ -124,10 +192,10 @@ export async function onRequest(context) {
             // Get current timestamp
             const timestamp = new Date().toISOString();
 
-            // Insert the incident into the database
+            // Insert the incident into the database with default visibility=1 and deletion_votes=0
             const result = await env.DB.prepare(`
-          INSERT INTO incidents (category, subcategory, description, urgent, location, timestamp)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO incidents (category, subcategory, description, urgent, location, timestamp, visibility, deletion_votes)
+          VALUES (?, ?, ?, ?, ?, ?, 1, 0)
         `)
                 .bind(
                     data.category,
@@ -159,8 +227,8 @@ export async function onRequest(context) {
                 }
             });
         } catch (error) {
-            console.error("Error creating incident:", error);
-            return new Response(JSON.stringify({ error: "Error creating incident" }), {
+            console.error("Error processing request:", error);
+            return new Response(JSON.stringify({ error: "Error processing request" }), {
                 status: 500,
                 headers: {
                     "Content-Type": "application/json",

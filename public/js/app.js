@@ -285,7 +285,7 @@ function initUI() {
   setupFormSync();
   setupFormSubmission();
   setupSearchBar();
-  
+
 }
 
 // Modal informativo
@@ -532,6 +532,8 @@ function showToast(message, type = 'success', duration = 3000) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
+
+// Versión actualizada de la función addIncidentToMap con texto mejorado
 function addIncidentToMap(incident) {
   const category = categoriesData[incident.category];
   const subcategory = category?.subcategories[incident.subcategory];
@@ -548,7 +550,7 @@ function addIncidentToMap(incident) {
 
   const marker = L.marker(incidentLocation, {
     icon: customIcon,
-    isUrgent: incident.urgent // Añadimos esta propiedad para identificar marcadores urgentes en clusters
+    isUrgent: incident.urgent
   });
 
   const categoryLabel = category ? category.label : 'Desconocido';
@@ -559,15 +561,64 @@ function addIncidentToMap(incident) {
       <p>${incident.description}</p>
       <p><small>Reportado: ${new Date(incident.timestamp).toLocaleString()}</small></p>
       ${incident.urgent ? '<p class="urgent-tag"><strong>¡URGENTE!</strong></p>' : ''}
+      <button class="report-incident-btn" data-incident-id="${incident.id}">
+        <i class="fas fa-flag"></i> Marcar como resuelto o inexacto
+      </button>
     </div>
   `;
 
-  marker.bindPopup(popupContent);
+  const popup = L.popup().setContent(popupContent);
+  marker.bindPopup(popup);
+  
+  // Agregar event listener al popup cuando se abre
+  marker.on('popupopen', function() {
+    const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${incident.id}"]`);
+    if (reportButton) {
+      reportButton.addEventListener('click', function() {
+        voteToDeleteIncident(incident.id);
+      });
+    }
+  });
+  
   incidentMarkers[incident.id] = marker;
-
-  // Añadir el marcador al grupo de cluster en lugar de directamente al mapa
   markerClusterGroup.addLayer(marker);
 }
+
+async function voteToDeleteIncident(incidentId) {
+  try {
+    loadingIndicator.style.display = 'flex';
+    
+    const response = await fetch(`/api/incidents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'vote_delete',
+        incidentId: incidentId
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al procesar la información');
+    }
+    
+    // Cerrar el popup actual
+    map.closePopup();
+    
+    // Mensaje genérico
+    showToast('Gracias por tu aporte. Hemos registrado tu información.', 'success');
+    
+    // Refrescar incidentes para mantener el mapa actualizado
+    loadIncidents();
+    
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('No se pudo procesar tu aporte. Inténtalo más tarde.', 'error');
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
+}
+
 
 // Configuración de la barra de búsqueda
 function setupSearchBar() {
