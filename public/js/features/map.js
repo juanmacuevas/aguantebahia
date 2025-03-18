@@ -4,26 +4,53 @@ import { showToast } from './notifications.js';
 
 // Module state (private to this module)
 let map;
-let markerClusterGroup;
+let canvasRenderer;
 let selectedMarker = null;
 let selectedLocation = null;
+let incidentLayers = [];
+
+// Zoom-based radius configuration
+const RADIUS_CONFIG = {
+  baseZoom: 13,  // Default zoom level
+  minRadius: 2,  // Smallest possible radius
+  maxRadius: 10, // Largest possible radius
+  zoomSensitivity: 2 // How quickly radius increases with zoom
+};
 
 /**
- * Initialize the map
+ * Calculate dynamic point radius based on zoom level
+ * @param {number} zoom - Current map zoom level
+ * @returns {number} - Calculated radius
+ */
+function calculatePointRadius(zoom) {
+  // Calculate radius difference from base zoom
+  const zoomDelta = zoom - RADIUS_CONFIG.baseZoom;
+  
+  // Linear scaling with zoom, but starting very small
+  const radius = RADIUS_CONFIG.minRadius + 
+    (zoomDelta * RADIUS_CONFIG.zoomSensitivity);
+  
+  // Clamp radius between min and max
+  return Math.max(
+    RADIUS_CONFIG.minRadius, 
+    Math.min(radius, RADIUS_CONFIG.maxRadius)
+  );
+}
+
+/**
+ * Initialize the map with canvas renderer
  * @returns {Object} - The map instance
  */
 export function initMap() {
-  // Initialize map with configuration
+  // Create a canvas renderer for more efficient point rendering
+  canvasRenderer = L.canvas({ padding: 0.5 });
+
+  // Initialize map with configuration and canvas renderer
   map = L.map('map', {
     zoomControl: false,
-    maxZoom: mapConfig.maxZoom
+    maxZoom: mapConfig.maxZoom,
+    renderer: canvasRenderer
   }).setView(mapConfig.center, mapConfig.zoom);
-
-
-  // Initialize the marker cluster group
-  markerClusterGroup = createMarkerClusterGroup();
-  map.addLayer(markerClusterGroup);
-
 
   // Add base layers
   const baseLayers = {};
@@ -49,62 +76,33 @@ export function initMap() {
     baseLayers[layerConfig.name] = layer;
   });
 
-
   // Add map controls
   addMapControls(map, baseLayers);
 
   // Register map click handler
   map.on('click', handleMapClick);
 
+  // Add zoom event listener to adjust marker sizes
+  map.on('zoomend', adjustMarkerSizes);
+
   return map;
 }
 
 /**
- * Create the marker cluster group with custom settings
- * @returns {L.MarkerClusterGroup} - The created marker cluster group
+ * Adjust marker sizes based on current zoom level
  */
-function createMarkerClusterGroup() {
-  return L.markerClusterGroup({
-    chunkedLoading: true,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    zoomToBoundsOnClick: true,
-    disableClusteringAtZoom: mapConfig.cluster.disableClusteringAtZoom,
-    maxClusterRadius: function (zoom) {
-      if (zoom >= 15) return mapConfig.cluster.maxClusterRadius.highZoom;
-      if (zoom >= 13) return mapConfig.cluster.maxClusterRadius.mediumZoom;
-      return mapConfig.cluster.maxClusterRadius.lowZoom;
-    },
-    iconCreateFunction: function (cluster) {
-      const childCount = cluster.getChildCount();
-      let hasUrgent = false;
-
-      // Check if any markers in the cluster are urgent
-      cluster.getAllChildMarkers().forEach(function (marker) {
-        if (marker.options.isUrgent) {
-          hasUrgent = true;
-        }
-      });
-
-      const className = 'marker-cluster' +
-        (hasUrgent ? ' marker-cluster-urgent' : '');
-
-      let colorClass;
-      if (childCount < 10) {
-        colorClass = 'marker-cluster-small';
-      } else if (childCount < 100) {
-        colorClass = 'marker-cluster-medium';
-      } else {
-        colorClass = 'marker-cluster-large';
-      }
-
-      return new L.DivIcon({
-        html: '<div><span>' + childCount + '</span></div>',
-        className: className + ' ' + colorClass,
-        iconSize: new L.Point(40, 40)
-      });
-    }
+function adjustMarkerSizes() {
+  const currentZoom = map.getZoom();
+  const newRadius = calculatePointRadius(currentZoom);
+  
+  incidentLayers.forEach(marker => {
+    marker.setRadius(newRadius);
   });
+
+  // Adjust selected marker if exists
+  if (selectedMarker) {
+    selectedMarker.setRadius(newRadius);
+  }
 }
 
 /**
@@ -159,12 +157,23 @@ function handleMapClick(e) {
 export function placeMarkerAtLocation(coords) {
   const [lat, lng] = coords;
   const latlng = L.latLng(lat, lng);
+  const currentZoom = map.getZoom();
 
   if (selectedMarker) {
     map.removeLayer(selectedMarker);
   }
 
-  selectedMarker = L.marker(latlng).addTo(map);
+  // Use canvas renderer for the selected marker
+  selectedMarker = L.circleMarker(latlng, {
+    renderer: canvasRenderer,
+    radius: calculatePointRadius(currentZoom),
+    fillColor: '#3388ff',
+    color: '#3388ff',
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 0.7
+  }).addTo(map);
+
   selectedLocation = latlng;
 
   // Update location displays
@@ -190,7 +199,7 @@ export function placeMarkerAtLocation(coords) {
  * Add an incident marker to the map
  * @param {Object} incident - Incident data
  * @param {Object} categoryData - Category data object
- * @returns {L.Marker} - The created marker
+ * @returns {L.CircleMarker} - The created marker
  */
 export function addIncidentMarker(incident, categoryData) {
   const { category, subcategory, description, location, urgent, timestamp, id } = incident;
@@ -203,18 +212,18 @@ export function addIncidentMarker(incident, categoryData) {
   const color = getMarkerColor(category, subcategory, categoryData);
   const iconClass = getMarkerIcon(category, subcategory, categoryData);
 
-  // Create marker at incident location
+  // Create marker at incident location using CircleMarker for canvas rendering
   const incidentLocation = L.latLng(location.lat, location.lng);
-  const iconHtml = `<i class="${iconClass}" style="color: ${color}; border: 2px solid ${color};"></i>`;
-  const customIcon = L.divIcon({
-    html: iconHtml,
-    className: urgent ? 'custom-marker-icon urgent' : 'custom-marker-icon',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
-
-  const marker = L.marker(incidentLocation, {
-    icon: customIcon,
+  const currentZoom = map.getZoom();
+  
+  const marker = L.circleMarker(incidentLocation, {
+    renderer: canvasRenderer,
+    radius: calculatePointRadius(currentZoom),
+    fillColor: color,
+    color: color,
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 0.7,
     isUrgent: urgent
   });
 
@@ -252,7 +261,19 @@ export function addIncidentMarker(incident, categoryData) {
     }
   });
 
+  // Add marker to the map and track it
+  marker.addTo(map);
+  incidentLayers.push(marker);
+
   return marker;
+}
+
+/**
+ * Clear all incident markers from the map
+ */
+export function clearIncidentMarkers() {
+  incidentLayers.forEach(layer => map.removeLayer(layer));
+  incidentLayers = [];
 }
 
 /**
@@ -307,14 +328,6 @@ function getMarkerIcon(catKey, subKey, categoryData) {
  */
 export function getMap() {
   return map;
-}
-
-/**
- * Get the marker cluster group (for use by other modules)
- * @returns {L.MarkerClusterGroup} - The marker cluster group
- */
-export function getMarkerClusterGroup() {
-  return markerClusterGroup;
 }
 
 /**

@@ -1,6 +1,6 @@
 // src/features/incidents.js
 import { apiService } from '../services/api.js';
-import { getMap, getMarkerClusterGroup, addIncidentMarker } from './map.js';
+import { getMap, addIncidentMarker } from './map.js';
 import { getCategoriesData } from './categories.js';
 import { showToast } from './notifications.js';
 
@@ -28,8 +28,8 @@ export async function initIncidents() {
 export async function loadIncidents() {
   try {
     // Clear existing incidents
-    const markerClusterGroup = getMarkerClusterGroup();
-    markerClusterGroup.clearLayers();
+    const map = getMap();
+    Object.values(incidentMarkers).forEach(marker => map.removeLayer(marker));
     incidentMarkers = {};
     
     // Get incidents from API
@@ -59,12 +59,9 @@ export async function loadIncidents() {
  * @param {Object} categoriesData - Categories data
  */
 function processBatch(incidents, categoriesData) {
-  const markerClusterGroup = getMarkerClusterGroup();
-  
   incidents.forEach(incident => {
     const marker = addIncidentMarker(incident, categoriesData);
     incidentMarkers[incident.id] = marker;
-    markerClusterGroup.addLayer(marker);
   });
 }
 
