@@ -1,6 +1,7 @@
 // src/features/map.js
 import { mapConfig } from '../config.js';
 import { showToast } from './notifications.js';
+import { voteToDeleteIncident } from './incidents.js'; 
 
 // Module state (private to this module)
 let map;
@@ -130,7 +131,8 @@ function addMapControls(map, baseLayers) {
     // Handle button click event
     div.querySelector('.refresh-btn').addEventListener('click', function (e) {
       e.stopPropagation();
-      // We'll implement this in incidents.js and import it here
+      // Import loadIncidents from incidents.js
+      const { loadIncidents } = require('./incidents.js');
       if (typeof loadIncidents === 'function') {
         loadIncidents();
         showToast('Actualizando incidentes...', 'success');
@@ -250,15 +252,18 @@ export function addIncidentMarker(incident, categoryData) {
 
   // Add event listener when popup opens
   marker.on('popupopen', function () {
-    const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${id}"]`);
-    if (reportButton) {
-      reportButton.addEventListener('click', function () {
-        // This will be implemented in incidents.js
-        if (typeof voteToDeleteIncident === 'function') {
+    // Fixed event listener with proper scope
+    setTimeout(() => {
+      const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${id}"]`);
+      if (reportButton) {
+        reportButton.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Directly call the imported function
           voteToDeleteIncident(id);
-        }
-      });
-    }
+        });
+      }
+    }, 100); // Short timeout to ensure the DOM is ready
   });
 
   // Add marker to the map and track it

@@ -1,4 +1,4 @@
-/* Reset básico */
+/* Base reset */
 * {
     margin: 0;
     padding: 0;
@@ -20,6 +20,20 @@ body {
     z-index: 1;
 }
 
+/* === TOP LAYOUT === */
+/* Top container for header and search */
+.top-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+}
+
 /* Header */
 .header {
     background-color: rgba(255, 255, 255, 0.9);
@@ -27,7 +41,7 @@ body {
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     text-align: center;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    flex-shrink: 0;
 }
 
 .header h1 {
@@ -37,7 +51,12 @@ body {
     white-space: nowrap;
 }
 
-/* Sidebar para desktop */
+/* Search container */
+.search-container {
+    flex-grow: 1;
+}
+
+/* === SIDEBAR (DESKTOP) === */
 .sidebar {
     position: absolute;
     top: 0;
@@ -50,7 +69,7 @@ body {
     transition: transform 0.3s ease;
     transform: translateX(0);
     overflow-y: auto;
-    display: none; /* Oculto por defecto en móvil */
+    display: none; /* Hidden on mobile by default */
 }
 
 .sidebar.collapsed {
@@ -72,7 +91,7 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: right 0.3s ease, background-color 0.2s ease;
-    display: none; /* Oculto por defecto en móvil */
+    display: none; /* Hidden on mobile by default */
 }
 
 .sidebar-toggle:hover {
@@ -98,7 +117,7 @@ body {
     right: 0;
 }
 
-/* Bottomsheet para móvil */
+/* === BOTTOMSHEET (MOBILE) === */
 .bottomsheet {
     position: fixed;
     bottom: 0;
@@ -112,7 +131,7 @@ body {
     border-radius: 12px 12px 0 0;
     overflow-y: auto;
     max-height: 80vh;
-    display: block; /* Visible por defecto en móvil */
+    display: block; /* Visible on mobile by default */
 }
 
 .bottomsheet.expanded {
@@ -156,7 +175,7 @@ body {
     color: #cc0000;
 }
 
-/* Contenedor de formularios */
+/* === FORM ELEMENTS === */
 .form-container {
     padding: 20px;
 }
@@ -209,13 +228,18 @@ body {
     font-weight: bold;
     width: 100%;
     margin-top: 10px;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
 .btn:hover {
     background-color: #0055aa;
 }
 
-/* Estilo para checkbox */
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Checkbox styling */
 .checkbox-container {
     display: flex;
     align-items: center;
@@ -233,7 +257,7 @@ body {
     color: #cc0000;
 }
 
-/* Estilo para select de categoría */
+/* Category select */
 .category-select {
     max-height: 200px;
     overflow-y: auto;
@@ -248,7 +272,8 @@ body {
     transform: scale(1.2);
 }
 
-/* Indicador de carga */
+/* === UI COMPONENTS === */
+/* Loading indicator */
 .loading {
     position: fixed;
     top: 0;
@@ -272,15 +297,11 @@ body {
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
-/* Toast para notificaciones */
+/* Toast notifications */
 .toast {
     position: fixed;
     bottom: 30px;
@@ -307,40 +328,7 @@ body {
     background-color: #cc0000;
 }
 
-/* Media Queries */
-@media (min-width: 769px) {
-    .sidebar,
-    .sidebar-toggle {
-        display: block; /* Mostrar sidebar en desktop */
-    }
-
-    .bottomsheet {
-        display: none; /* Ocultar bottomsheet en desktop */
-    }
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 280px;
-    }
-
-    .sidebar-toggle {
-        right: 280px;
-    }
-
-    .leaflet-control-zoom {
-        margin-top: 60px; /* Hacer espacio para el header centrado en móvil */
-    }
-    
-    .toast {
-        width: 90%;
-        text-align: center;
-    }
-}
-
-
-/* Botón de información */
-
+/* Info button */
 .info-button {
     position: absolute;
     bottom: 20px;
@@ -365,7 +353,7 @@ body {
     background-color: #0055aa;
 }
 
-/* Modal de información */
+/* === MODAL === */
 .modal {
     display: none;
     position: fixed;
@@ -391,8 +379,8 @@ body {
 }
 
 @keyframes modalopen {
-    from {opacity: 0; transform: translateY(-20px);}
-    to {opacity: 1; transform: translateY(0);}
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .close-modal {
@@ -455,19 +443,7 @@ body {
     text-decoration: underline;
 }
 
-@media (max-width: 768px) {
-    .modal-content {
-        width: 90%;
-        margin: 15% auto;
-        padding: 20px;
-    }
-    
-    .info-button {
-        bottom: 70px; /* Ajustar posición para no interferir con el bottomsheet */
-    }
-}
-
-/* Estilos para botones de compartir */
+/* Share buttons */
 .share-buttons {
     margin-top: 20px;
     padding-top: 15px;
@@ -516,7 +492,7 @@ body {
 }
 
 .copy-link {
-    background-color: #333333; /* Gris más oscuro para mejor contraste */
+    background-color: #333333;
     cursor: pointer;
     border: none;
     font-size: 1em;
@@ -526,57 +502,20 @@ body {
     background-color: #4caf50;
 }
 
-/* Top container for header and search */
-.top-container {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 15px;
+/* === RESPONSIVE DESIGN === */
+@media (min-width: 769px) {
+    .sidebar,
+    .sidebar-toggle {
+        display: block; /* Show sidebar on desktop */
+    }
+
+    .bottomsheet {
+        display: none; /* Hide bottomsheet on desktop */
+    }
 }
 
-/* Update search container styles */
-.search-container {
-    flex-grow: 1;
-}
-
-
-.search-box {
-    display: flex;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-    width: 100%;
-}
-
-.search-box input {
-    flex-grow: 1;
-    border: none;
-    padding: 10px 15px;
-    font-size: 16px;
-    outline: none;
-}
-
-.search-box button {
-    background: #0066cc;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.search-box button:hover {
-    background: #0055aa;
-}
-
-/* Media query for mobile devices */
 @media (max-width: 768px) {
+    /* Mobile layout adjustments */
     .top-container {
         flex-direction: column;
         top: 10px;
@@ -591,9 +530,36 @@ body {
         width: 100%;
         margin-top: 10px;
     }
+    
+    /* Adjust sidebar/toggle sizes for mobile */
+    .sidebar {
+        width: 280px;
+    }
 
-    /* Adjust leaflet controls to avoid overlap */
+    .sidebar-toggle {
+        right: 280px;
+    }
+    
+    /* Adjust leaflet controls for mobile */
     .leaflet-control-zoom {
-        margin-top: 120px;
+        margin-top: 120px; /* Make space for header */
+    }
+    
+    /* Toast styling for mobile */
+    .toast {
+        width: 90%;
+        text-align: center;
+    }
+    
+    /* Modal adjustments for mobile */
+    .modal-content {
+        width: 90%;
+        margin: 15% auto;
+        padding: 20px;
+    }
+    
+    /* Info button position adjustment */
+    .info-button {
+        bottom: 70px; /* Clear the bottomsheet */
     }
 }
