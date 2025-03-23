@@ -4,7 +4,7 @@ let categoriesData = {};
 let incidentMarkers = {};
 let selectedMarker = null;
 let selectedLocation = null;
-let markerClusterGroup = null; // Nueva variable para el grupo de cluster
+let canvasLayer = null; // Nueva variable para la capa de canvas
 
 // Elementos DOM
 const sidebar = document.querySelector('.sidebar');
@@ -33,7 +33,6 @@ function initApp() {
 }
 
 // Inicializar el mapa (se asigna a la variable global)
-
 function initMap() {
   // Inicializar el mapa con maxZoom especificado
   map = L.map('map', {
@@ -41,53 +40,8 @@ function initMap() {
     maxZoom: 19  // Añadir explícitamente maxZoom
   }).setView([-38.7183, -62.2661], 13);
 
-  // Inicializar el grupo de cluster con opciones adecuadas
-  markerClusterGroup = L.markerClusterGroup({
-    chunkedLoading: true,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    zoomToBoundsOnClick: true,
-    disableClusteringAtZoom: 18,  // Desactivar clustering en zoom muy cercano
-    maxClusterRadius: function (zoom) {
-      return zoom >= 15 ? 20 : zoom >= 13 ? 40 : 80;
-    },
-    iconCreateFunction: function (cluster) {
-      var childCount = cluster.getChildCount();
-      var hasUrgent = false;
-
-      cluster.getAllChildMarkers().forEach(function (marker) {
-        if (marker.options.isUrgent) {
-          hasUrgent = true;
-        }
-      });
-
-      var className = 'marker-cluster' +
-        (hasUrgent ? ' marker-cluster-urgent' : '');
-
-      var size;
-      var colorClass;
-
-      if (childCount < 10) {
-        size = 'small';
-        colorClass = 'marker-cluster-small';
-      } else if (childCount < 100) {
-        size = 'medium';
-        colorClass = 'marker-cluster-medium';
-      } else {
-        size = 'large';
-        colorClass = 'marker-cluster-large';
-      }
-
-      return new L.DivIcon({
-        html: '<div><span>' + childCount + '</span></div>',
-        className: className + ' ' + colorClass,
-        iconSize: new L.Point(40, 40)
-      });
-    }
-  });
-
-  // Añadir el grupo de cluster al mapa
-  map.addLayer(markerClusterGroup);
+  // Inicializar la capa de canvas
+  canvasLayer = L.canvas({ padding: 0.5 });
 
   // Capas base gratuitas
   const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -152,7 +106,6 @@ function initMap() {
   // Manejar clics en el mapa para colocar marcadores
   map.on('click', handleMapClick);
 }
-
 
 // Cargar categorías desde JSON
 async function loadCategories() {
@@ -244,7 +197,7 @@ async function loadIncidents() {
     loadingIndicator.style.display = 'flex';
 
     // Limpiamos todos los marcadores existentes
-    markerClusterGroup.clearLayers();
+    clearAllMarkers();
     incidentMarkers = {};
 
     const response = await fetch('/api/incidents');
@@ -263,6 +216,15 @@ async function loadIncidents() {
     console.error('Error loading incidents:', error);
   } finally {
     loadingIndicator.style.display = 'none';
+  }
+}
+
+// Limpiar todos los marcadores del mapa
+function clearAllMarkers() {
+  for (const id in incidentMarkers) {
+    if (incidentMarkers[id]) {
+      map.removeLayer(incidentMarkers[id]);
+    }
   }
 }
 
@@ -285,7 +247,6 @@ function initUI() {
   setupFormSync();
   setupFormSubmission();
   setupSearchBar();
-
 }
 
 // Modal informativo
@@ -515,10 +476,6 @@ function placeMarkerAtLocation(coords) {
   }
 }
 
-function handleWindowResize() {
-  if (window.innerWidth > 768) bottomsheet.classList.remove('expanded');
-}
-
 function showToast(message, type = 'success', duration = 3000) {
   let toast = document.querySelector('.toast') || document.createElement('div');
   if (!toast.classList.contains('toast')) {
@@ -532,25 +489,25 @@ function showToast(message, type = 'success', duration = 3000) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
-
-// Versión actualizada de la función addIncidentToMap con texto mejorado
+// Versión actualizada para usar círculos en canvas
 function addIncidentToMap(incident) {
   const category = categoriesData[incident.category];
   const subcategory = category?.subcategories[incident.subcategory];
   const color = getSubcategoryColor(incident.category, incident.subcategory);
-  const iconClass = getSubcategoryIcon(incident.category, incident.subcategory);
   const incidentLocation = L.latLng(incident.location.lat, incident.location.lng);
-  const iconHtml = `<i class="${iconClass}" style="color: ${color}; border: 2px solid ${color};"></i>`;
-  const customIcon = L.divIcon({
-    html: iconHtml,
-    className: incident.urgent ? 'custom-marker-icon urgent' : 'custom-marker-icon',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
-
-  const marker = L.marker(incidentLocation, {
-    icon: customIcon,
-    isUrgent: incident.urgent
+  
+  // Radio fijo para todos los círculos
+  const radius = 8;
+  
+  // Crear un círculo en lugar de un marcador
+  const circle = L.circleMarker(incidentLocation, {
+    renderer: canvasLayer,
+    radius: radius,
+    fillColor: color,
+    color: '#ffffff',
+    weight: 1,
+    opacity: 1,
+    fillOpacity: 0.8
   });
 
   const categoryLabel = category ? category.label : 'Desconocido';
@@ -568,10 +525,10 @@ function addIncidentToMap(incident) {
   `;
 
   const popup = L.popup().setContent(popupContent);
-  marker.bindPopup(popup);
+  circle.bindPopup(popup);
   
   // Agregar event listener al popup cuando se abre
-  marker.on('popupopen', function() {
+  circle.on('popupopen', function() {
     const reportButton = document.querySelector(`.report-incident-btn[data-incident-id="${incident.id}"]`);
     if (reportButton) {
       reportButton.addEventListener('click', function() {
@@ -580,8 +537,23 @@ function addIncidentToMap(incident) {
     }
   });
   
-  incidentMarkers[incident.id] = marker;
-  markerClusterGroup.addLayer(marker);
+  // Mejorar la experiencia de usuario con hover
+  circle.on('mouseover', function() {
+    this.setStyle({
+      radius: radius * 1.2,
+      fillOpacity: 1
+    });
+  });
+  
+  circle.on('mouseout', function() {
+    this.setStyle({
+      radius: radius,
+      fillOpacity: 0.8
+    });
+  });
+  
+  incidentMarkers[incident.id] = circle;
+  circle.addTo(map);
 }
 
 async function voteToDeleteIncident(incidentId) {
@@ -618,7 +590,6 @@ async function voteToDeleteIncident(incidentId) {
     loadingIndicator.style.display = 'none';
   }
 }
-
 
 // Configuración de la barra de búsqueda
 function setupSearchBar() {
